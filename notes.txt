@@ -1,0 +1,111 @@
+4/2/2015
+Example pseudocode for generating quads from AST node
+gen_rvalue(node, target)
+{
+  if(node.type==SCALAR VAR) return node;
+  if(node.type==CONST) return node;
+  if(node.type==BINARY_OP) {
+    left = gen_rvalule(node.left, NULL);
+    right = gen_rvalue(node.right, NULL);
+    if (targe == NULL) target = new TemporaryRegister();
+    output(LOAD, node.addr, null, target); //output a quad
+    return target;
+  }
+  if(node.type==ASSIGN) {
+    dest=gen_lvalue(node.left, %dest_mode);
+    if(dest==NULL) return error;
+    if(dest_mode==DIRECT)
+      gen_rvalue(node.right, NULL);
+    else {
+      t1=gen_rvalue(node.right, NULL);
+      output(STORE, t1, dest, NULL);
+    }
+  }
+  if(node.type == ARRAY) {
+    temp=new TemporaryRegister();
+    output(LEA,node,NULL,temp);
+  }
+}
+union node* gen_lvalue(union node *node, int *mode) {
+  ...
+}
+
+POYNTER ARITHMETIC
+int a[10], i, v;
+a[i] = v; //Array indexing is just a pointer
+          //Top level node=EQUALS (assignment)
+          //EQUALS.right=v, node.left=DEREF (pointer equivalency)
+          //DEREF.child=PLUS
+          //PLUS.left=a, PLUS.right=i
+The following quads are generated:
+%T1 = LEA a
+%T2 = MUL i,4
+%T3 = ADD %T1, %T2
+STO v, %T3
+
+2D array:
+int a[10][20], v;
+v = a[i][j];
+          [=]
+        /     \
+    [v]       [DEREF]
+                  |
+                 [+]
+                /    \
+              [DEREF] [j]   
+                |
+               [+]
+              /   \
+            [a]   [i]
+
+6 Generated quads:
+%T1 = LEA a
+%T2 = MUL i, 80    //sizeof deref(ptr to array of 20 ints) = 80 bytes
+%T3 = ADD %T1, %T2 //at this point, a[i][0], but how to index to j? just keep going
+%T4 = MUL j, 4    //sizeof(int)=4
+%T5 = ADD %T4, %T3    //rinse and repeat
+v = LOD %T5
+
+Consider structures, for the heck of it
+int i;
+struct s {
+  int a, b, c;
+} *p,s;
+Example quads:
+code: i = p->b;
+quads:
+%T1 = ADD p,4
+i = LOD %T1
+--------
+code: i = s.c;
+quads:
+%T1 = LEA s
+%T2 = ADD %T1,8 //s contains 3 ints and occupies 12 bytes; c starts at the 9th
+i = LOD, %T2
+
+Consider
+a = 3+4*2;
+Straightforward way
+%T1 = MUL 4,2
+a = ADD %T1, 3
+
+Or you can compute this in the compiler and just use a = MOVL 11
+AST:
+      [=]
+    /     \
+  [a]       [+]
+          /     \
+        3       [*]
+              /     \
+            4         2
+recursively replace [*] with 8, then [+] with 11 (constant folding)
+
+Constant propagation
+a=2+2;
+b=a;
+c=b+1;
+Clearly a,b,c can again be computed beforehand
+If there is some function call in between, then a or b could be altered and optimizing complicated
+Consider
+int x[2+5*sizeof(int)];
+int z[y+3]; //
