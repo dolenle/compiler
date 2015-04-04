@@ -11,7 +11,6 @@ extern int yylex();
 //extern int yyparse();
 int line;
 char filename[4096];
-char currentSym[128];
 
 #define YYDEBUG 1
 int yydebug = 0;
@@ -336,7 +335,6 @@ direct_declarator
 	: IDENT {
 				if(!containsSymbol(currentTable, $1)) {
 					installSymbol(currentTable, $1, filename, line, NUM);
-					strcpy(currentSym, $1);
 				} else {
 					yyerror("Redeclaration of variable");
 					}
@@ -434,9 +432,22 @@ labeled_statement
 
 compound_statement
 	: '{' '}'
-	| '{' statement_list '}'
-	| '{' declaration_list '}'
-	| '{' declaration_list statement_list '}'
+	| '{' 	{
+				if(currentTable->scope == GLOBAL_SCOPE) {
+					currentTable = enterScope(FUNCTION_SCOPE, line, filename, currentTable);
+				} else {
+					currentTable = enterScope(BLOCK_SCOPE, line, filename, currentTable);
+				}
+			}
+		declaration_or_statement_list '}' {currentTable = leaveScope(currentTable, 0);}
+	;
+	
+declaration_or_statement_list
+	: statement_list
+	| declaration_list
+	| declaration_or_statement_list declaration_list
+	| declaration_or_statement_list statement_list
+	| declaration_list statement_list
 	;
 
 declaration_list
@@ -481,7 +492,7 @@ translation_unit
 	;
 
 external_declaration
-	: function_definition
+	: function_definition {printf("Left function!\n");}
 	| declaration
 	;
 
