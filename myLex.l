@@ -107,7 +107,7 @@ _Imaginary	{return _IMAGINARY;}
 	/*number matching*/
 <INITIAL>{decimal}|{hex}|{octal}|{zero} {
 	BEGIN(intmode);
-	yylval.num.typeFlag=INT;
+	yylval.num.typeFlag=INT_T;
 	yylval.num.signFlag=SIGNED_T;
 	yylval.num.intBuff=strtoll(yytext, NULL, 0);
 }
@@ -120,7 +120,7 @@ _Imaginary	{return _IMAGINARY;}
 }
 
 <INITIAL>({decimal}|{zero})*((\.{digit}*)|[eE](\+?|\-?){digit}+)|(({hex}|{octal})[pP](\+?|\-?){digit}+) {
-	printf("----%s\n",yytext);
+	//printf("----%s\n",yytext);
 	BEGIN(realmode);
 	yylval.num.typeFlag=DOUBLE;
 	yylval.num.realBuff=atof(yytext);

@@ -1344,7 +1344,7 @@ YY_RULE_SETUP
 #line 108 "myLex.l"
 {
 	BEGIN(intmode);
-	yylval.num.typeFlag=INT;
+	yylval.num.typeFlag=INT_T;
 	yylval.num.signFlag=SIGNED_T;
 	yylval.num.intBuff=strtoll(yytext, NULL, 0);
 }
@@ -1380,7 +1380,7 @@ case 71:
 YY_RULE_SETUP
 #line 122 "myLex.l"
 {
-	printf("----%s\n",yytext);
+	//printf("----%s\n",yytext);
 	BEGIN(realmode);
 	yylval.num.typeFlag=DOUBLE;
 	yylval.num.realBuff=atof(yytext);

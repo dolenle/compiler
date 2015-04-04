@@ -133,11 +133,11 @@ union YYSTYPE
 			FLOAT_T,
 			DOUBLE_T,
 			LONGDOUBLE_T
-		} signFlag;
+		} typeFlag;
 		enum signtype {
 			SIGNED_T,
 			UNSIGNED_T
-		} typeFlag;
+		} signFlag;
 	} num;
 
 #line 144 "myParser.tab.h" /* yacc.c:1909  */

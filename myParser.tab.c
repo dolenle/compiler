@@ -205,11 +205,11 @@ union YYSTYPE
 			FLOAT_T,
 			DOUBLE_T,
 			LONGDOUBLE_T
-		} signFlag;
+		} typeFlag;
 		enum signtype {
 			SIGNED_T,
 			UNSIGNED_T
-		} typeFlag;
+		} signFlag;
 	} num;
 
 #line 216 "myParser.tab.c" /* yacc.c:355  */
@@ -533,28 +533,28 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,    69,    69,    78,    79,    80,    84,    85,    86,    87,
-      88,    89,    90,    91,    95,    96,   100,   101,   102,   103,
-     104,   105,   106,   107,   108,   109,   110,   110,   123,   124,
-     128,   129,   130,   131,   135,   136,   137,   141,   142,   143,
-     147,   148,   149,   150,   151,   155,   156,   157,   161,   162,
-     166,   167,   171,   172,   176,   177,   181,   182,   186,   187,
-     191,   192,   193,   194,   195,   196,   197,   198,   199,   200,
-     201,   202,   220,   221,   225,   229,   230,   234,   235,   236,
-     237,   238,   239,   243,   244,   248,   249,   253,   254,   255,
-     256,   257,   261,   262,   263,   264,   265,   266,   267,   268,
-     269,   270,   271,   272,   276,   277,   278,   282,   283,   287,
-     288,   292,   296,   297,   298,   299,   303,   304,   308,   309,
-     310,   314,   315,   316,   320,   321,   325,   326,   330,   331,
-     335,   336,   340,   347,   348,   349,   350,   351,   352,   356,
-     357,   358,   359,   363,   364,   369,   370,   374,   375,   379,
-     380,   381,   385,   386,   390,   391,   395,   396,   397,   401,
-     402,   403,   404,   405,   406,   407,   408,   409,   413,   414,
-     415,   419,   420,   424,   425,   426,   427,   428,   429,   433,
-     434,   435,   439,   440,   440,   451,   452,   453,   454,   455,
-     459,   460,   464,   465,   469,   470,   474,   475,   476,   480,
-     481,   482,   483,   487,   488,   489,   490,   491,   495,   496,
-     500,   501,   505,   506,   507,   508
+       0,    69,    69,    78,    87,    88,    92,    93,    94,    95,
+      96,    97,    98,    99,   103,   104,   108,   109,   110,   111,
+     112,   113,   114,   115,   116,   117,   118,   118,   131,   132,
+     136,   137,   138,   139,   143,   144,   145,   149,   150,   151,
+     155,   156,   157,   158,   159,   163,   164,   165,   169,   170,
+     174,   175,   179,   180,   184,   185,   189,   190,   194,   195,
+     199,   200,   201,   202,   203,   204,   205,   206,   207,   208,
+     209,   210,   228,   229,   233,   237,   238,   242,   243,   244,
+     245,   246,   247,   251,   252,   256,   257,   261,   262,   263,
+     264,   265,   269,   270,   271,   272,   273,   274,   275,   276,
+     277,   278,   279,   280,   284,   285,   286,   290,   291,   295,
+     296,   300,   304,   305,   306,   307,   311,   312,   316,   317,
+     318,   322,   323,   324,   328,   329,   333,   334,   338,   339,
+     343,   344,   348,   355,   356,   357,   358,   359,   360,   364,
+     365,   366,   367,   371,   372,   377,   378,   382,   383,   387,
+     388,   389,   393,   394,   398,   399,   403,   404,   405,   409,
+     410,   411,   412,   413,   414,   415,   416,   417,   421,   422,
+     423,   427,   428,   432,   433,   434,   435,   436,   437,   441,
+     442,   443,   447,   448,   448,   459,   460,   461,   462,   463,
+     467,   468,   472,   473,   477,   478,   482,   483,   484,   488,
+     489,   490,   491,   495,   496,   497,   498,   499,   503,   504,
+     508,   509,   513,   514,   515,   516
 };
 #endif
 
@@ -1816,188 +1816,202 @@ yyreduce:
 #line 1817 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
+  case 3:
+#line 78 "myParser.y" /* yacc.c:1646  */
+    {
+					if (yylval.num.typeFlag == INT_T || yylval.num.typeFlag == LONG_T || yylval.num.typeFlag == LONGLONG_T)
+                        (yyval.num.intBuff) = yylval.num.intBuff;
+                else {
+                        (yyval.num.intBuff) = (long long)yylval.num.realBuff;
+                        fprintf(stderr,"Truncating real number %Lg to integer %lld\n",yylval.num.realBuff,(yyval.num.intBuff));
+                        printf("exprval=%lld\n",(yyval.num.intBuff));
+                }
+				}
+#line 1831 "myParser.tab.c" /* yacc.c:1646  */
+    break;
+
   case 4:
-#line 79 "myParser.y" /* yacc.c:1646  */
+#line 87 "myParser.y" /* yacc.c:1646  */
     {yyerror("Strings not supported.");}
-#line 1823 "myParser.tab.c" /* yacc.c:1646  */
+#line 1837 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 5:
-#line 80 "myParser.y" /* yacc.c:1646  */
+#line 88 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1829 "myParser.tab.c" /* yacc.c:1646  */
+#line 1843 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 16:
-#line 100 "myParser.y" /* yacc.c:1646  */
+#line 108 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1835 "myParser.tab.c" /* yacc.c:1646  */
+#line 1849 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 101 "myParser.y" /* yacc.c:1646  */
+#line 109 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = -(yyvsp[0].num.intBuff); }
-#line 1841 "myParser.tab.c" /* yacc.c:1646  */
+#line 1855 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 102 "myParser.y" /* yacc.c:1646  */
+#line 110 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[0].num.intBuff);  printf("exprval=%lld\n",(yyval.num.intBuff)); }
-#line 1847 "myParser.tab.c" /* yacc.c:1646  */
+#line 1861 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 103 "myParser.y" /* yacc.c:1646  */
+#line 111 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = !(yyvsp[0].num.intBuff); }
-#line 1853 "myParser.tab.c" /* yacc.c:1646  */
+#line 1867 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 20:
-#line 104 "myParser.y" /* yacc.c:1646  */
+#line 112 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = ~(yyvsp[0].num.intBuff); }
-#line 1859 "myParser.tab.c" /* yacc.c:1646  */
+#line 1873 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 21:
-#line 105 "myParser.y" /* yacc.c:1646  */
+#line 113 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (long long) &(yyvsp[0].num.intBuff); }
-#line 1865 "myParser.tab.c" /* yacc.c:1646  */
+#line 1879 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 106 "myParser.y" /* yacc.c:1646  */
+#line 114 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[0].num.intBuff); }
-#line 1871 "myParser.tab.c" /* yacc.c:1646  */
+#line 1885 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 107 "myParser.y" /* yacc.c:1646  */
+#line 115 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = ++(yyvsp[0].num.intBuff); }
-#line 1877 "myParser.tab.c" /* yacc.c:1646  */
+#line 1891 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 108 "myParser.y" /* yacc.c:1646  */
+#line 116 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = --(yyvsp[0].num.intBuff); }
-#line 1883 "myParser.tab.c" /* yacc.c:1646  */
+#line 1897 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 109 "myParser.y" /* yacc.c:1646  */
+#line 117 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1889 "myParser.tab.c" /* yacc.c:1646  */
+#line 1903 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 110 "myParser.y" /* yacc.c:1646  */
+#line 118 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1895 "myParser.tab.c" /* yacc.c:1646  */
+#line 1909 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 110 "myParser.y" /* yacc.c:1646  */
+#line 118 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = sizeof(long long); }
-#line 1901 "myParser.tab.c" /* yacc.c:1646  */
+#line 1915 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 123 "myParser.y" /* yacc.c:1646  */
+#line 131 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1907 "myParser.tab.c" /* yacc.c:1646  */
+#line 1921 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 124 "myParser.y" /* yacc.c:1646  */
+#line 132 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1913 "myParser.tab.c" /* yacc.c:1646  */
+#line 1927 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 34:
-#line 135 "myParser.y" /* yacc.c:1646  */
+#line 143 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1919 "myParser.tab.c" /* yacc.c:1646  */
+#line 1933 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 176 "myParser.y" /* yacc.c:1646  */
+#line 184 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1925 "myParser.tab.c" /* yacc.c:1646  */
+#line 1939 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 60:
-#line 191 "myParser.y" /* yacc.c:1646  */
+#line 199 "myParser.y" /* yacc.c:1646  */
     {}
-#line 1931 "myParser.tab.c" /* yacc.c:1646  */
+#line 1945 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 61:
-#line 192 "myParser.y" /* yacc.c:1646  */
+#line 200 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[0].num.intBuff); setSymbolValue(currentTable, currentSym, (long long) (yyvsp[0].num.intBuff)); printf( "exprval=%lld\n", (yyval.num.intBuff)); }
-#line 1937 "myParser.tab.c" /* yacc.c:1646  */
+#line 1951 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 62:
-#line 193 "myParser.y" /* yacc.c:1646  */
+#line 201 "myParser.y" /* yacc.c:1646  */
     {(yyval.num.intBuff) = (yyvsp[-2].num.intBuff) + (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1943 "myParser.tab.c" /* yacc.c:1646  */
+#line 1957 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 63:
-#line 194 "myParser.y" /* yacc.c:1646  */
+#line 202 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) - (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff);}
-#line 1949 "myParser.tab.c" /* yacc.c:1646  */
+#line 1963 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 64:
-#line 195 "myParser.y" /* yacc.c:1646  */
+#line 203 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) * (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1955 "myParser.tab.c" /* yacc.c:1646  */
+#line 1969 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 65:
-#line 196 "myParser.y" /* yacc.c:1646  */
+#line 204 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) / (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1961 "myParser.tab.c" /* yacc.c:1646  */
+#line 1975 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 197 "myParser.y" /* yacc.c:1646  */
+#line 205 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) % (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1967 "myParser.tab.c" /* yacc.c:1646  */
+#line 1981 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 67:
-#line 198 "myParser.y" /* yacc.c:1646  */
+#line 206 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) << (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1973 "myParser.tab.c" /* yacc.c:1646  */
+#line 1987 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 199 "myParser.y" /* yacc.c:1646  */
+#line 207 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) >> (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1979 "myParser.tab.c" /* yacc.c:1646  */
+#line 1993 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 69:
-#line 200 "myParser.y" /* yacc.c:1646  */
+#line 208 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) & (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1985 "myParser.tab.c" /* yacc.c:1646  */
+#line 1999 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 70:
-#line 201 "myParser.y" /* yacc.c:1646  */
+#line 209 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) | (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1991 "myParser.tab.c" /* yacc.c:1646  */
+#line 2005 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 71:
-#line 202 "myParser.y" /* yacc.c:1646  */
+#line 210 "myParser.y" /* yacc.c:1646  */
     { (yyval.num.intBuff) = (yyvsp[-2].num.intBuff) ^ (yyvsp[0].num.intBuff);(yyvsp[-2].num.intBuff) = (yyval.num.intBuff); }
-#line 1997 "myParser.tab.c" /* yacc.c:1646  */
+#line 2011 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 132:
-#line 340 "myParser.y" /* yacc.c:1646  */
+#line 348 "myParser.y" /* yacc.c:1646  */
     {
 				if(!containsSymbol(currentTable, (yyvsp[0].stringBuff))) {
 					installSymbol(currentTable, (yyvsp[0].stringBuff), filename, line, NUM);
@@ -2005,29 +2019,29 @@ yyreduce:
 					yyerror("Redeclaration of variable");
 					}
 			}
-#line 2009 "myParser.tab.c" /* yacc.c:1646  */
+#line 2023 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 152:
-#line 385 "myParser.y" /* yacc.c:1646  */
+#line 393 "myParser.y" /* yacc.c:1646  */
     {printf("%s\n", "identifier list");}
-#line 2015 "myParser.tab.c" /* yacc.c:1646  */
+#line 2029 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 169:
-#line 414 "myParser.y" /* yacc.c:1646  */
+#line 422 "myParser.y" /* yacc.c:1646  */
     {}
-#line 2021 "myParser.tab.c" /* yacc.c:1646  */
+#line 2035 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 170:
-#line 415 "myParser.y" /* yacc.c:1646  */
+#line 423 "myParser.y" /* yacc.c:1646  */
     {}
-#line 2027 "myParser.tab.c" /* yacc.c:1646  */
+#line 2041 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 183:
-#line 440 "myParser.y" /* yacc.c:1646  */
+#line 448 "myParser.y" /* yacc.c:1646  */
     {
 				if(currentTable->scope == GLOBAL_SCOPE) {
 					currentTable = enterScope(FUNCTION_SCOPE, line, filename, currentTable);
@@ -2035,23 +2049,23 @@ yyreduce:
 					currentTable = enterScope(BLOCK_SCOPE, line, filename, currentTable);
 				}
 			}
-#line 2039 "myParser.tab.c" /* yacc.c:1646  */
+#line 2053 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 184:
-#line 447 "myParser.y" /* yacc.c:1646  */
+#line 455 "myParser.y" /* yacc.c:1646  */
     {currentTable = leaveScope(currentTable, 0);}
-#line 2045 "myParser.tab.c" /* yacc.c:1646  */
+#line 2059 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
   case 210:
-#line 500 "myParser.y" /* yacc.c:1646  */
+#line 508 "myParser.y" /* yacc.c:1646  */
     {printf("Left function!\n");}
-#line 2051 "myParser.tab.c" /* yacc.c:1646  */
+#line 2065 "myParser.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 2055 "myParser.tab.c" /* yacc.c:1646  */
+#line 2069 "myParser.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2279,7 +2293,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 511 "myParser.y" /* yacc.c:1906  */
+#line 519 "myParser.y" /* yacc.c:1906  */
 
 
 void yyerror(const char* s) {

@@ -34,11 +34,11 @@ char currentSym[128]; //probably not the proper way to do this
 			FLOAT_T,
 			DOUBLE_T,
 			LONGDOUBLE_T
-		} signFlag;
+		} typeFlag;
 		enum signtype {
 			SIGNED_T,
 			UNSIGNED_T
-		} typeFlag;
+		} signFlag;
 	} num;
 }
 
@@ -75,7 +75,15 @@ primary_expression
 					yyerror("Symbol not found\n");
 				}
 			}
-	| NUMBER 
+	| NUMBER 	{
+					if (yylval.num.typeFlag == INT_T || yylval.num.typeFlag == LONG_T || yylval.num.typeFlag == LONGLONG_T)
+                        $$ = yylval.num.intBuff;
+                else {
+                        $$ = (long long)yylval.num.realBuff;
+                        fprintf(stderr,"Truncating real number %Lg to integer %lld\n",yylval.num.realBuff,$$);
+                        printf("exprval=%lld\n",$$);
+                }
+				}
 	| STRING {yyerror("Strings not supported.");}
 	| '(' expression ')' {}
 	;
