@@ -42,6 +42,10 @@ long long getSymbolValue(symbolTable* table, char* ident) {
 	return ht_getValue(table->mainTable, ident);
 }
 
+int containsSymbol(symbolTable* table, char* ident) {
+	return ht_contains(table->mainTable, ident);
+}
+
 char* getTableFile(symbolTable* table) {
 	return table->filename;
 }

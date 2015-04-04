@@ -39,7 +39,7 @@ hashTable* new_hashTable(int size);
 
 int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename, symType type);
 
-int ht_containsSymbol(hashTable* table, char* identifier);
+int ht_contains(hashTable* table, char* identifier);
 
 int ht_setValue(hashTable* table, char* identifier, long long value);
 

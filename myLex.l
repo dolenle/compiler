@@ -75,6 +75,7 @@ _Imaginary	{return _IMAGINARY;}
 "++"		{return PLUSPLUS;}
 "--"		{return MINUSMINUS;}
 "..."		{return ELLIPSIS;}
+"=="		{return EQEQ;}
 "!="		{return NOTEQ;}
 "+="		{return PLUSEQ;}
 "-="		{return MINUSEQ;}
@@ -87,8 +88,8 @@ _Imaginary	{return _IMAGINARY;}
 "->"		{return INDSEL;}
 "&&"		{return LOGAND;}
 "||"		{return LOGOR;}
-"<="		{return SHLEQ;}
-">="		{return SHREQ;}
+"<="		{return LTEQ;}
+">="		{return GTEQ;}
 "<<="		{return SHLEQ;}
 "<<"		{return SHL;}
 ">>="		{return SHREQ;}

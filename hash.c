@@ -66,6 +66,13 @@ long long ht_getValue(hashTable* table, char* identifier) {
 	return table->data[i].value;
 }
 
+int ht_contains(hashTable* table, char* identifier) {
+	if(findPos(table, identifier) > -1)
+		return 1;
+	else
+		return 0;
+}
+
 //Insert key into hash table; return 0=success, 1=duplicate, 2=fail
 int tableInsert(hashTable* table, char* key, void* pv) {
 	if(table->filled < table->capacity) {
