@@ -39,6 +39,7 @@ int setSymbolValue(symbolTable* table, char* ident, long long val) {
 }
 
 long long getSymbolValue(symbolTable* table, char* ident) {
+	printf("getSymbolValue of %s\n", ident);
 	return ht_getValue(table->mainTable, ident);
 }
 

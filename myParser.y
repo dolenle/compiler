@@ -16,6 +16,8 @@ char filename[4096];
 int yydebug = 0;
 void yyerror(const char* s);
 symbolTable* currentTable;
+
+char currentSym[128]; //probably not the proper way to do this
 %}
 
 %union {
@@ -65,10 +67,13 @@ logical_and_expression additive_expression assignment_expression expression
 
 primary_expression
 	: IDENT {
-			if(containsSymbol(currentTable, $1))
-				$$ = getSymbolValue(currentTable, $1);
-			else
-				yyerror("Symbol not found\n");
+				if(containsSymbol(currentTable, $1)) {
+					$$ = getSymbolValue(currentTable, $1);
+					strcpy(currentSym, $1);
+					printf("exprval: %i\n",$$);
+				} else {
+					yyerror("Symbol not found\n");
+				}
 			}
 	| NUMBER 
 	| STRING {yyerror("Strings not supported.");}
@@ -184,7 +189,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression {}
-	| unary_expression '=' assignment_expression { $$ = $3;printf( "exprval=%lld\n", $$); }
+	| unary_expression '=' assignment_expression { $$ = $3; setSymbolValue(currentTable, currentSym, (long long) $3); printf( "exprval=%lld\n", $$); }
 	| unary_expression PLUSEQ assignment_expression {$$ = $1 + $3;$1 = $$; }
 	| unary_expression MINUSEQ assignment_expression { $$ = $1 - $3;$1 = $$;}
 	| unary_expression TIMESEQ assignment_expression { $$ = $1 * $3;$1 = $$; }
