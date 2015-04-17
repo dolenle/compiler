@@ -1,0 +1,20 @@
+Notes 4/16
+
+Regions of Memory
+TEXT - executable code
+DATA - initialized globals and static vars
+BSS - uninitialized static/globals
+(HEAP) - grows downward as dynamic memory allocated
+STACK - contains auto, grows upwards
+
+int a;
+int b = 2;
+
+f1(int x, int y) { //x and y go in stack for x86, otherwise in registers for x86-64
+  int l;
+  static int s;
+  static int y=5;
+  char *p;
+    p = malloc(10);
+    printf("%d\n", a); //globals are initialized to all zero bits
+}
