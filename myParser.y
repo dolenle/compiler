@@ -106,12 +106,15 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression {}
+/*
 	| '-' cast_expression { $$ = -$2; }
 	| '+' cast_expression { $$ = $2;  printf("exprval=%lld\n",$$); }
 	| '!' cast_expression { $$ = !$2; }
 	| '~' cast_expression { $$ = ~$2; }
 	| '&' cast_expression { $$ = (long long) &$2; }
 	| '*' cast_expression { $$ = $2; }
+*/
+	| unary_operator cast_expression
 	| PLUSPLUS unary_expression { $$ = ++$2; }
 	| MINUSMINUS unary_expression { $$ = --$2; }
 	| SIZEOF unary_expression {}
@@ -197,6 +200,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression {}
+/*
 	| unary_expression '=' assignment_expression { $$ = $3; setSymbolValue(currentTable, currentSym, (long long) $3); printf( "exprval=%lld\n", $$); }
 	| unary_expression PLUSEQ assignment_expression {$$ = $1 + $3;$1 = $$; }
 	| unary_expression MINUSEQ assignment_expression { $$ = $1 - $3;$1 = $$;}
@@ -208,6 +212,8 @@ assignment_expression
 	| unary_expression ANDEQ assignment_expression { $$ = $1 & $3;$1 = $$; }
 	| unary_expression OREQ assignment_expression { $$ = $1 | $3;$1 = $$; }
 	| unary_expression XOREQ assignment_expression { $$ = $1 ^ $3;$1 = $$; }
+*/
+	| unary_expression assignment_operator assignment_expression
 	;
 
 assignment_operator
@@ -445,6 +451,14 @@ labeled_statement
 
 compound_statement
 	: '{' '}'
+	| '{' statement_list '}'
+	| '{' declaration_list '}'
+	| '{' declaration_list statement_list '}'
+	;
+
+/*
+compound_statement
+	: '{' '}'
 	| '{' 	{
 				if(currentTable->scope == GLOBAL_SCOPE) {
 					currentTable = enterScope(FUNCTION_SCOPE, line, filename, currentTable);
@@ -462,7 +476,8 @@ declaration_or_statement_list
 	| declaration_or_statement_list statement_list
 	| declaration_list statement_list
 	;
-
+*/
+	
 declaration_list
 	: declaration
 	| declaration_list declaration

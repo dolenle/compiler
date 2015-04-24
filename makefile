@@ -1,6 +1,9 @@
 parser: myParser.tab.o lex.yy.o syms.o hash.o
 	gcc -o parser myParser.tab.o lex.yy.o syms.o hash.o
 
+tester: tester.o syms.o hash.o
+	gcc -o tester tester.o syms.o hash.o
+	
 lex.yy.o: myLex.l
 	flex myLex.l
 	gcc -c lex.yy.c
@@ -8,6 +11,9 @@ lex.yy.o: myLex.l
 myParser.tab.o: myParser.y
 	bison -vd myParser.y
 	gcc -c myParser.tab.c
+	
+tester.o: tester.c syms.o
+	gcc -c tester.c
 	
 syms: hash.o syms.c syms.h
 	gcc -o syms syms.c hash.o
