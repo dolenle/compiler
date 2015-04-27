@@ -6,3 +6,6 @@
 Thumbs.db
 *.o
 *.out
+tester
+parser.exe
+parser
