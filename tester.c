@@ -30,5 +30,16 @@ int main() {
 	ht_test_print(t2, "dolen");
 	ht_test_print(t2, "howard");
 	ht_test_print(t2, "john");
+	
+	
+	printf("[Symbol Table Test]\n");
+	symbolTable* globalTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
+	printf("Created symTab\n");
+	installSymbol(globalTable, "test", "TestFileName.c", 12, NUM);
+	installSymbol(globalTable, "var2", "TestFileName.c", 13, NUM);
+	setSymbolValue(globalTable, "test", 123);
+	installSymbol(globalTable, "var3", "TestFileName.c", 13, NUM);
+	installSymbol(globalTable, "var4", "TestFileName.c", 13, NUM);
+	printf("%lli\n", getSymbolValue(globalTable, "test"));
 	return 1;
 }

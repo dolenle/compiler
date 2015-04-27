@@ -1,20 +1,21 @@
-%define parse.error verbose
+/*%define parse.error verbose*/
 %debug
 %{
 
 #include "syms.h"
+#include "ast.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 extern int yylex();
-//extern int yyparse();
-int line;
+extern int line;
 char filename[4096];
 
 #define YYDEBUG 1
 int yydebug = 0;
 void yyerror(const char* s);
+
 symbolTable* currentTable;
 
 char currentSym[128]; //probably not the proper way to do this
@@ -24,6 +25,9 @@ char currentSym[128]; //probably not the proper way to do this
 	char charBuff;
 	char* stringBuff;
 	void* noval;
+	
+	node* astNode;
+	
 	struct num {
 		long long intBuff;
 		long double realBuff;
@@ -47,7 +51,7 @@ char currentSym[128]; //probably not the proper way to do this
 %token <charBuff> CHARLIT
 %token <stringBuff> STRING IDENT
 %token <num.intBuff> NUMBER
-%token <noval> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR
+%token <astNode> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR
 ELLIPSIS TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ ANDEQ OREQ XOREQ AUTO BREAK
 CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE
 INT LONG REGISTER RESTRICT RETURN SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF
@@ -70,7 +74,7 @@ primary_expression
 				if(containsSymbol(currentTable, $1)) {
 					$$ = getSymbolValue(currentTable, $1);
 					strcpy(currentSym, $1);
-					printf("exprval: %i\n",$$);
+					printf("exprval: %lli\n",$$);
 				} else {
 					yyerror("Symbol not found\n");
 				}
@@ -106,19 +110,11 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression {}
-/*
-	| '-' cast_expression { $$ = -$2; }
-	| '+' cast_expression { $$ = $2;  printf("exprval=%lld\n",$$); }
-	| '!' cast_expression { $$ = !$2; }
-	| '~' cast_expression { $$ = ~$2; }
-	| '&' cast_expression { $$ = (long long) &$2; }
-	| '*' cast_expression { $$ = $2; }
-*/
-	| unary_operator cast_expression
-	| PLUSPLUS unary_expression { $$ = ++$2; }
-	| MINUSMINUS unary_expression { $$ = --$2; }
+	| unary_operator cast_expression {}
+	| PLUSPLUS unary_expression {}
+	| MINUSMINUS unary_expression {}
 	| SIZEOF unary_expression {}
-	| SIZEOF '(' type_name ')' {} { $$ = sizeof(long long); }
+	| SIZEOF '(' type_name ')' {}
 	;
 
 unary_operator
@@ -200,34 +196,21 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression {}
-/*
-	| unary_expression '=' assignment_expression { $$ = $3; setSymbolValue(currentTable, currentSym, (long long) $3); printf( "exprval=%lld\n", $$); }
-	| unary_expression PLUSEQ assignment_expression {$$ = $1 + $3;$1 = $$; }
-	| unary_expression MINUSEQ assignment_expression { $$ = $1 - $3;$1 = $$;}
-	| unary_expression TIMESEQ assignment_expression { $$ = $1 * $3;$1 = $$; }
-	| unary_expression DIVEQ assignment_expression { $$ = $1 / $3;$1 = $$; }
-	| unary_expression MODEQ assignment_expression { $$ = $1 % $3;$1 = $$; }
-	| unary_expression SHLEQ assignment_expression { $$ = $1 << $3;$1 = $$; }
-	| unary_expression SHREQ assignment_expression { $$ = $1 >> $3;$1 = $$; }
-	| unary_expression ANDEQ assignment_expression { $$ = $1 & $3;$1 = $$; }
-	| unary_expression OREQ assignment_expression { $$ = $1 | $3;$1 = $$; }
-	| unary_expression XOREQ assignment_expression { $$ = $1 ^ $3;$1 = $$; }
-*/
 	| unary_expression assignment_operator assignment_expression
 	;
-
+	
 assignment_operator
 	: '='
-	| TIMESEQ
-	| DIVEQ
-	| MODEQ
-	| PLUSEQ
-	| MINUSEQ
-	| SHLEQ
-	| SHREQ
-	| ANDEQ
-	| XOREQ
-	| OREQ
+	| PLUSEQ 
+	| MINUSEQ 
+	| TIMESEQ 
+	| DIVEQ 
+	| MODEQ 
+	| SHLEQ 
+	| SHREQ 
+	| ANDEQ 
+	| OREQ 
+	| XOREQ 
 	;
 
 expression
@@ -534,12 +517,13 @@ function_definition
 %%
 
 void yyerror(const char* s) {
-	fprintf(stderr, "Error: %s\n", s);
+	fprintf(stderr, "Error: %s on line %i\n", s, line);
 }
 
-int main() {
+int main(int argc, char** argv) {
 	printf("[Parser Begin]\n");
 	strcpy(filename, "Placeholder.c");
 	currentTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
 	yyparse();
+	return 0;
 }

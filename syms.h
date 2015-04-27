@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #define MAX_STRING_LENGTH 4096 
-
+#define HT_SIZE 30
 
 typedef enum scopeType {
 	GLOBAL_SCOPE,

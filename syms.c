@@ -12,9 +12,9 @@ symbolTable* enterScope(scopeType scope, int line, char* filename, symbolTable* 
 	table->line = line;
 	table->filename = strdup(filename);
 	table->parent = parent;
-	table->mainTable = new_hashTable(20);
-	table->labelTable = new_hashTable(20);
-	table->tagTable = new_hashTable(20);
+	table->mainTable = new_hashTable(HT_SIZE);
+	table->labelTable = new_hashTable(HT_SIZE);
+	table->tagTable = new_hashTable(HT_SIZE);
 	
 	return table;
 }
@@ -28,7 +28,7 @@ symbolTable* leaveScope(symbolTable* table, int free) {
 	return table->parent;
 }
 
-int installSymbol(symbolTable* table, char* ident, char *filename, int linenum, symType type) {
+int installSymbol(symbolTable* table, char* ident, char* filename, int linenum, symType type) {
 	printf("installSym symbol=%s\n", ident);
 	return ht_addSymbol(table->mainTable, ident, linenum, filename, type);
 }
@@ -50,16 +50,3 @@ int containsSymbol(symbolTable* table, char* ident) {
 char* getTableFile(symbolTable* table) {
 	return table->filename;
 }
-
-// int main() {
-// 	printf("[Symbol Table Test]\n");
-// 	symbolTable* globalTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
-// 	printf("Created symTab\n");
-// 	installSymbol(globalTable, "test", "TestFileName.c", 12, NUM);
-// 	installSymbol(globalTable, "var2", "TestFileName.c", 13, NUM);
-// 	setSymbolValue(globalTable, "test", 123);
-// 	installSymbol(globalTable, "var3", "TestFileName.c", 13, NUM);
-// 	installSymbol(globalTable, "var4", "TestFileName.c", 13, NUM);
-// 	printf("%lli\n", getSymbolValue(globalTable, "test"));
-// 	return 0;
-// }
