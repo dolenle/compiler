@@ -34,12 +34,13 @@ symbolTable* leaveScope(symbolTable* table, int free);
 
 int installSymbol(symbolTable* table, char* ident, char *filename, int linenumber, symType type);
 
-int setSymbolValue(symbolTable* table, char* ident, long long val);
-
-long long getSymbolValue(symbolTable* table, char* ident);
-
 int containsSymbol(symbolTable* table, char* ident); //return 1 if found, 0 if not
 
 int searchSymbol(symbolTable* table, char* ident); //search through all parent scopes
+
+//For Assignment 2
+int setSymbolValue(symbolTable* table, char* ident, long long val);
+
+long long getSymbolValue(symbolTable* table, char* ident);
 
 #endif
