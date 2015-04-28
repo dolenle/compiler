@@ -10,7 +10,7 @@ typedef enum nodeType {
 	VAR_NODE=0,	
 	FUNC_NODE,
 	STOR_NODE,
-	SCALR_NODE,
+	SCALAR_NODE,
 	NUM_NODE,
 	STRNG_NODE,
 	CHAR_NODE,
@@ -27,35 +27,54 @@ typedef enum nodeType {
 	SWITCH_NODE
 } nodeType;
 
+typedef enum nodeBranch {
+	LEFT_NODE=0,
+	RIGHT_NODE,
+	NEXT_NODE,
+	CONDITION_NODE,
+	BODY_NODE
+} nodeBranch;
+
+//Define structs for the various node types
+typedef struct node_var {
+	int type;
+	long long int intVal;
+	long double realVal;
+	int size;
+	char* ident;
+} node_var;
+
+typedef struct node_func {
+	
+} node_func;
+
+typedef struct node_stor {
+	
+} node_stor;
+
+typedef struct node_scalar {
+	
+} node_scalar;
+
+typedef struct node_number {
+	
+} node_number;
+
 typedef struct node {
 	nodeType type;
-	struct node* left;
-	struct node* right;
-	struct node* next;
-	struct node* cond;
-	struct node* body;
-	struct attr {
-		char filename[128];
-		int linestart;
-		char identifier[128];
-		char str[2048];
-	        
-		int yynum; 
+	union {
+		node_var var;
+		node_func func;
+		node_stor stor;
+		node_scalar scalar;
+		node_number number;
 	} attr;
 } node;
 
-node* createNode(int type);
+//Creates a new AST node of the specified type, with no associations.
+node* newASTNode(nodeType type);
 
-struct ast_node * ast_reverse_tree(struct ast_node *root, int dir);
-
-struct ast_node * ast_push_back(struct ast_node *root, struct ast_node *new_node, int dir);
-
-int ast_list_size(struct ast_node *root, int dir);
-
-void ast_dump(struct ast_node *root, char *fn_name);
-
-void ast_print_node(struct ast_node *root);
-
-void ast_print_tree(struct ast_node *root);
+//Creates a new AST node and attaches it to the specified parent
+node* newASTChild(nodeType type, node* parent, nodeBranch branch);
 
 #endif

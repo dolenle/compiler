@@ -6,15 +6,16 @@
 #include "ast.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-
-extern int yylex();
-extern int line;
-char filename[4096];
 
 #define YYDEBUG 1
 int yydebug = 0;
 void yyerror(const char* s);
+
+void doScopeThing();
+
+extern int yylex();
+extern int line;
+char filename[4096];
 
 symbolTable* currentTable;
 
@@ -75,18 +76,20 @@ primary_expression
 					$$ = getSymbolValue(currentTable, $1);
 					strcpy(currentSym, $1);
 					printf("exprval: %lli\n",$$);
+				} else if(searchSymbol(currentTable, $1)) {
+					printf("Symbol found in outer scope\n");
 				} else {
-					yyerror("Symbol not found\n");
+					yyerror("Symbol not found");
 				}
 			}
 	| NUMBER 	{
 					if (yylval.num.typeFlag == INT_T || yylval.num.typeFlag == LONG_T || yylval.num.typeFlag == LONGLONG_T)
                         $$ = yylval.num.intBuff;
-                else {
+					else {
                         $$ = (long long)yylval.num.realBuff;
                         fprintf(stderr,"Truncating real number %Lg to integer %lld\n",yylval.num.realBuff,$$);
                         printf("exprval=%lld\n",$$);
-                }
+					}
 				}
 	| STRING {yyerror("Strings not supported.");}
 	| '(' expression ')' {}
@@ -196,23 +199,35 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression {}
-	| unary_expression assignment_operator assignment_expression
-	;
-	
-assignment_operator
-	: '='
-	| PLUSEQ 
-	| MINUSEQ 
-	| TIMESEQ 
-	| DIVEQ 
-	| MODEQ 
-	| SHLEQ 
-	| SHREQ 
-	| ANDEQ 
-	| OREQ 
-	| XOREQ 
+	| unary_expression '=' assignment_expression { $$ = $3; setSymbolValue(currentTable, currentSym, (long long) $3); printf( "exprval=%lld\n", $$); }
+	| unary_expression PLUSEQ assignment_expression {$$ = $1 + $3;$1 = $$; }
+	| unary_expression MINUSEQ assignment_expression { $$ = $1 - $3;$1 = $$;}
+	| unary_expression TIMESEQ assignment_expression { $$ = $1 * $3;$1 = $$; }
+	| unary_expression DIVEQ assignment_expression { $$ = $1 / $3;$1 = $$; }
+	| unary_expression MODEQ assignment_expression { $$ = $1 % $3;$1 = $$; }
+	| unary_expression SHLEQ assignment_expression { $$ = $1 << $3;$1 = $$; }
+	| unary_expression SHREQ assignment_expression { $$ = $1 >> $3;$1 = $$; }
+	| unary_expression ANDEQ assignment_expression { $$ = $1 & $3;$1 = $$; }
+	| unary_expression OREQ assignment_expression { $$ = $1 | $3;$1 = $$; }
+	| unary_expression XOREQ assignment_expression { $$ = $1 ^ $3;$1 = $$; }
+	/*| unary_expression assignment_operator assignment_expression {doAssign($1,$2,$3);}*/
 	;
 
+/*
+assignment_operator
+	: '=' {$$ = '=';}
+	| PLUSEQ {$$ = PLUSEQ;}
+	| MINUSEQ {$$ = MINUSEQ;}
+	| TIMESEQ {$$ = TIMESEQ;}
+	| DIVEQ {$$ = DIVEQ;}
+	| MODEQ {$$ = MODEQ;}
+	| SHLEQ {$$ = SHLEQ;}
+	| SHREQ {$$ = SHREQ;}
+	| ANDEQ {$$ = ANDEQ;}
+	| OREQ {$$ = OREQ;}
+	| XOREQ {$$ = XOREQ;}
+	;
+*/
 expression
 	: assignment_expression
 	| expression ',' assignment_expression
@@ -339,7 +354,7 @@ direct_declarator
 					installSymbol(currentTable, $1, filename, line, NUM);
 				} else {
 					yyerror("Redeclaration of variable");
-					}
+				}
 			}
 	| '(' declarator ')' 
 	| direct_declarator '[' constant_expression ']'
@@ -431,45 +446,43 @@ labeled_statement
 	| CASE constant_expression ':' statement
 	| DEFAULT ':' statement
 	;
-
-compound_statement
-	: '{' '}'
-	| '{' statement_list '}'
-	| '{' declaration_list '}'
-	| '{' declaration_list statement_list '}'
-	;
-
 /*
 compound_statement
-	: '{' '}'
-	| '{' 	{
-				if(currentTable->scope == GLOBAL_SCOPE) {
-					currentTable = enterScope(FUNCTION_SCOPE, line, filename, currentTable);
-				} else {
-					currentTable = enterScope(BLOCK_SCOPE, line, filename, currentTable);
-				}
-			}
-		declaration_or_statement_list '}' {currentTable = leaveScope(currentTable, 0);}
-	;
-	
-declaration_or_statement_list
-	: statement_list
-	| declaration_list
-	| declaration_or_statement_list declaration_list
-	| declaration_or_statement_list statement_list
-	| declaration_list statement_list
-	;
-*/
-	
-declaration_list
-	: declaration
-	| declaration_list declaration
+	: '{' {doScopeThing();} '}' {currentTable = leaveScope(currentTable, 0); printf("leaving scope...\n");}
+	| '{' {doScopeThing();} statement_list '}' {currentTable = leaveScope(currentTable, 0);}
+	| '{' {doScopeThing();} declaration_list '}' {currentTable = leaveScope(currentTable, 0);}
+	| '{' {doScopeThing();} declaration_list statement_list '}' {currentTable = leaveScope(currentTable, 0);}
 	;
 
 statement_list
 	: statement
 	| statement_list statement
 	;
+*/
+
+declaration_list
+	: declaration
+	| declaration_list declaration
+	;
+
+compound_statement
+        : '{' '}' {
+                //TODO: fix later
+        }
+        | '{' {doScopeThing();} declaration_or_statement_list '}' {
+                currentTable = leaveScope(currentTable, 0);
+        }
+        ;
+
+declaration_or_statement_list
+        : declaration_or_statement
+        | declaration_or_statement_list declaration_or_statement
+        ;
+
+declaration_or_statement
+        : declaration
+        | statement
+        ;
 
 expression_statement
 	: ';'
@@ -515,6 +528,14 @@ function_definition
 	;
 
 %%
+
+void doScopeThing() {
+	if(currentTable -> scope == GLOBAL_SCOPE) {
+		currentTable = enterScope(FUNCTION_SCOPE, line, filename, currentTable);
+	} else {
+		currentTable = enterScope(BLOCK_SCOPE, line, filename, currentTable);
+	}
+}
 
 void yyerror(const char* s) {
 	fprintf(stderr, "Error: %s on line %i\n", s, line);

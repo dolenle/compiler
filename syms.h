@@ -40,4 +40,6 @@ long long getSymbolValue(symbolTable* table, char* ident);
 
 int containsSymbol(symbolTable* table, char* ident); //return 1 if found, 0 if not
 
+int searchSymbol(symbolTable* table, char* ident); //search through all parent scopes
+
 #endif

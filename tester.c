@@ -43,3 +43,10 @@ int main() {
 	printf("%lli\n", getSymbolValue(globalTable, "test"));
 	return 1;
 }
+
+void foo() {
+	int x;
+	{
+		int x;
+	}
+}

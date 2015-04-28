@@ -20,6 +20,7 @@ symbolTable* enterScope(scopeType scope, int line, char* filename, symbolTable* 
 }
 
 symbolTable* leaveScope(symbolTable* table, int free) {
+	printf("leaveScope=%i\n", table->scope);
 	if(free) {
 		destroy_hashTable(table->mainTable);
 		destroy_hashTable(table->tagTable);
@@ -49,4 +50,16 @@ int containsSymbol(symbolTable* table, char* ident) {
 
 char* getTableFile(symbolTable* table) {
 	return table->filename;
+}
+
+int searchSymbol(symbolTable* table, char* ident) {
+	symbolTable* curTable = table;
+	do {
+		if(containsSymbol(curTable, ident)) {
+			return 1;
+		} else if (table->scope != GLOBAL_SCOPE) {
+			curTable = curTable->parent;
+		}
+	} while(table->scope != GLOBAL_SCOPE);
+	return 0;
 }
