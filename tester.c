@@ -26,6 +26,8 @@ int main() {
 	ht_test_print(t, "john");
 	ht_test_print(t, "dolen");
 	ht_test_print(t, "howard");
+	setPointer(t, "dolen", (void*) "gooby");
+	ht_test_print(t, "dolen");
 	
 	ht_test_print(t2, "dolen");
 	ht_test_print(t2, "howard");

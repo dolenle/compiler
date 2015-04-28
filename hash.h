@@ -41,6 +41,8 @@ int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename, s
 
 int ht_contains(hashTable* table, char* identifier);
 
+// Test functions for assignment 2
+
 int ht_setValue(hashTable* table, char* identifier, long long value);
 
 long long ht_getValue(hashTable* table, char* identifier);

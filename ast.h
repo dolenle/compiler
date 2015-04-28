@@ -38,8 +38,6 @@ typedef enum nodeBranch {
 //Define structs for the various node types
 typedef struct node_var {
 	int type;
-	long long int intVal;
-	long double realVal;
 	int size;
 	char* ident;
 } node_var;
