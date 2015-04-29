@@ -29,7 +29,11 @@ char currentSym[128]; //probably not the proper way to do this
 	char* stringBuff;
 	void* noval;
 	
-	node* astNode;
+	struct node* astNode;
+	struct ast {
+		node* topNode;
+		node* botNode;
+	} ast;
 	
 	struct num {
 		long long intBuff;
@@ -44,15 +48,14 @@ char currentSym[128]; //probably not the proper way to do this
 %token <charBuff> CHARLIT
 %token <stringBuff> STRING IDENT
 %token <num.intBuff> NUMBER
-%token <astNode> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR
+%token <noval> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR
 ELLIPSIS TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ ANDEQ OREQ XOREQ AUTO BREAK
 CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE
 INT LONG REGISTER RESTRICT RETURN SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF
 TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
-%left '_' '+' '=' '*' '/'
-%left NEG     /* negation__unary minus */
-%right '^'    /* exponentiation        */
+%left ELSE
+%left IF
 
 %type <num.intBuff> initializer primary_expression unary_expression cast_expression
 shift_expression relational_expression equality_expression logical_or_expression
@@ -441,23 +444,23 @@ declaration_list
 	;
 
 compound_statement
-        : '{' '}' {
-                //TODO: fix later
-        }
-        | '{' {doScopeThing();} declaration_or_statement_list '}' {
-                currentTable = leaveScope(currentTable, 0);
-        }
-        ;
+	: '{' '}' {
+			//TODO: fix later
+	}
+	| '{' {doScopeThing();} declaration_or_statement_list '}' {
+			currentTable = leaveScope(currentTable, 0);
+	}
+	;
 
 declaration_or_statement_list
-        : declaration_or_statement
-        | declaration_or_statement_list declaration_or_statement
-        ;
+	: declaration_or_statement
+	| declaration_or_statement_list declaration_or_statement
+	;
 
 declaration_or_statement
-        : declaration
-        | statement
-        ;
+	: declaration
+	| statement
+	;
 
 expression_statement
 	: ';'

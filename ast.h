@@ -19,7 +19,7 @@ typedef enum nodeType {
 //Define structs for the various node types
 
 typedef struct node_ident {
-	node* next;
+	struct node* next;
 	namespaceType ns;
 	int line;
 } node_ident;
@@ -35,14 +35,14 @@ typedef struct node_func {
 	int isDefined;
 } node_func;
 
-typedef struct node {
+struct node {
 	nodeType type;
 	union {
 		node_ident ident;
 		node_scalar scalar;
 		node_func function;
 	} u;
-} node;
+};
 
 //Creates a new AST node of the specified type, with no associations.
 node* ast_newNode(nodeType type);

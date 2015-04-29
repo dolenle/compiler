@@ -69,5 +69,6 @@ node* getNode(symbolTable* table, char* ident) {
 }
 
 int setNode(symbolTable* table, char* ident, node* astNode) {
+	printf("setNode type=%i\n", astNode->type);
 	return setPointer(table->mainTable, ident, (void*) astNode);
 }
