@@ -29,9 +29,9 @@ symbolTable* leaveScope(symbolTable* table, int free) {
 	return table->parent;
 }
 
-int installSymbol(symbolTable* table, char* ident, char* filename, int linenum) {
+int installSymbol(symbolTable* table, char* ident) {
 	printf("installSym symbol=%s\n", ident);
-	return ht_addSymbol(table->mainTable, ident, linenum, filename);
+	return ht_addSymbol(table->mainTable, ident);
 }
 
 //returns -1 if ident could not be found
@@ -56,12 +56,12 @@ int searchSymbol(symbolTable* table, char* ident) {
 	symbolTable* curTable = table;
 	do {
 		if(containsSymbol(curTable, ident)) {
-			return 1;
+			return curTable->scope;
 		} else if (table->scope != GLOBAL_SCOPE) {
 			curTable = curTable->parent;
 		}
-	} while(table->scope != GLOBAL_SCOPE);
-	return 0;
+	} while(curTable->scope != GLOBAL_SCOPE);
+	return -1;
 }
 
 node* getNode(symbolTable* table, char* ident) {

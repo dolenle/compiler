@@ -5,6 +5,8 @@
 %{
 #include <string.h>
 #include <stdlib.h>
+#include "globls.h"
+#include "ast.h"
 #include "myParser.tab.h"
 
 #define SIZE 1024

@@ -23,8 +23,8 @@ typedef struct symbolTable {
 	hashTable* mainTable;
 	hashTable* labelTable;
 	hashTable* tagTable;
-	int line;
-	char* filename;
+	int line; //line number where scope entered
+	char* filename; //file containing scope
 	struct symbolTable* parent;
 	scopeType scope;
 } symbolTable;
@@ -33,15 +33,16 @@ symbolTable* enterScope(scopeType scope, int line, char* filename, symbolTable* 
 
 symbolTable* leaveScope(symbolTable* table, int free);
 
-int installSymbol(symbolTable* table, char* ident, char *filename, int linenumber);
+int installSymbol(symbolTable* table, char* ident);
 
 int containsSymbol(symbolTable* table, char* ident); //return 1 if found, 0 if not
 
-//search through all parent scopes, return 1 if found, 0 if not
+//search through all parent scopes, return scope type else -1
 int searchSymbol(symbolTable* table, char* ident);
 
 node* getNode(symbolTable* table, char* ident);
 
+//return 1 if successful, 0 otherwise
 int setNode(symbolTable* table, char* ident, node* astNode);
 
 //For Assignment 2

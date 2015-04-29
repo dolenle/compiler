@@ -1,7 +1,7 @@
 /*%define parse.error verbose*/
 %debug
 %{
-
+#include "globls.h"
 #include "syms.h"
 #include "ast.h"
 #include <stdio.h>
@@ -12,12 +12,14 @@ int yydebug = 0;
 void yyerror(const char* s);
 
 void doScopeThing();
+node* doIdentThing(char* id);
 
 extern int yylex();
 extern int line;
 char filename[4096];
 
 symbolTable* currentTable;
+namespaceType currentNamespace = DEFAULT_SPACE;
 
 char currentSym[128]; //probably not the proper way to do this
 %}
@@ -32,18 +34,8 @@ char currentSym[128]; //probably not the proper way to do this
 	struct num {
 		long long intBuff;
 		long double realBuff;
-		enum numtype {
-			INT_T,
-			LONG_T,
-			LONGLONG_T,
-			FLOAT_T,
-			DOUBLE_T,
-			LONGDOUBLE_T
-		} typeFlag;
-		enum signtype {
-			SIGNED_T,
-			UNSIGNED_T
-		} signFlag;
+		numType typeFlag;
+		signType signFlag;
 	} num;
 }
 
@@ -65,6 +57,8 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 %type <num.intBuff> initializer primary_expression unary_expression cast_expression
 shift_expression relational_expression equality_expression logical_or_expression
 logical_and_expression additive_expression assignment_expression expression
+
+%type <astNode> declarator direct_declarator
 
 %start translation_unit;
 
@@ -349,14 +343,8 @@ declarator
 	;
 
 direct_declarator
-	: IDENT {
-				if(!containsSymbol(currentTable, $1)) {
-					installSymbol(currentTable, $1, filename, line, NUM);
-				} else {
-					yyerror("Redeclaration of variable");
-				}
-			}
-	| '(' declarator ')' 
+	: IDENT {$$ = doIdentThing($1);}
+	| '(' declarator ')' {$$=$2;}
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')'
@@ -446,19 +434,6 @@ labeled_statement
 	| CASE constant_expression ':' statement
 	| DEFAULT ':' statement
 	;
-/*
-compound_statement
-	: '{' {doScopeThing();} '}' {currentTable = leaveScope(currentTable, 0); printf("leaving scope...\n");}
-	| '{' {doScopeThing();} statement_list '}' {currentTable = leaveScope(currentTable, 0);}
-	| '{' {doScopeThing();} declaration_list '}' {currentTable = leaveScope(currentTable, 0);}
-	| '{' {doScopeThing();} declaration_list statement_list '}' {currentTable = leaveScope(currentTable, 0);}
-	;
-
-statement_list
-	: statement
-	| statement_list statement
-	;
-*/
 
 declaration_list
 	: declaration
@@ -528,6 +503,21 @@ function_definition
 	;
 
 %%
+
+node* doIdentThing(char* id) {
+	node* n = ast_newNode(IDENT_NODE);
+	n->u.ident.ns = currentNamespace;
+	n->u.ident.line = line;
+	//TODO: dont install if unnamed struct
+	if(!containsSymbol(currentTable, id)) {
+		installSymbol(currentTable, id);
+		setNode(currentTable, id, n);
+		return n;
+	} else {
+		yyerror("Redeclaration of variable");
+		return NULL;
+	}
+}
 
 void doScopeThing() {
 	if(currentTable -> scope == GLOBAL_SCOPE) {

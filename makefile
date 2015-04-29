@@ -1,5 +1,5 @@
-parser: myParser.tab.o lex.yy.o syms.o hash.o
-	gcc -o parser myParser.tab.o lex.yy.o syms.o hash.o
+parser: myParser.tab.o lex.yy.o syms.o hash.o ast.o
+	gcc -o parser myParser.tab.o lex.yy.o syms.o hash.o ast.o
 
 tester: tester.o syms.o hash.o
 	gcc -o tester tester.o syms.o hash.o
@@ -15,7 +15,7 @@ myParser.tab.o: myParser.y
 tester.o: tester.c syms.o
 	gcc -c tester.c
 	
-syms: hash.o syms.c syms.h
+syms: hash.o syms.c syms.h ast.h
 	gcc -o syms syms.c hash.o
 	
 syms.o: syms.c syms.h
@@ -23,5 +23,8 @@ syms.o: syms.c syms.h
 
 hash.o: hash.c hash.h
 	gcc -c hash.c
+	
+ast.o: ast.c ast.h
+	gcc -c ast.c
 
 clean: rm *.o myParser.tab.* lex.yy.* *.out

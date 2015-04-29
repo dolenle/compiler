@@ -17,9 +17,7 @@ typedef struct hashItem {
 	int isDeleted;
 	void *pv;
 	
-	long long value;
-	char filename[4096];
-	int line;
+	long long value; //for assignment 2
 } hashItem;
 
 typedef struct hashTable {
@@ -30,7 +28,7 @@ typedef struct hashTable {
 
 hashTable* new_hashTable(int size);
 
-int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename);
+int ht_addSymbol(hashTable* table, char* identifier);
 
 int ht_contains(hashTable* table, char* identifier);
 
@@ -39,8 +37,6 @@ int ht_contains(hashTable* table, char* identifier);
 int ht_setValue(hashTable* table, char* identifier, long long value);
 
 long long ht_getValue(hashTable* table, char* identifier);
-
-//Legacy Functions
 
 //returns 0 on success, 1 on duplicate, 2 on fail
 int tableInsert(hashTable* table, char* key, void* pv);

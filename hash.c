@@ -26,7 +26,7 @@ hashTable* new_hashTable(int size) {
 	return table;
 }
 
-int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename) {
+int ht_addSymbol(hashTable* table, char* identifier) {
 	//printf("addSymbol called\n");
 	if(table->filled < table->capacity) {
 		int i = hash(table, identifier); //get index
@@ -45,8 +45,6 @@ int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename) {
  		table->data[i].isOccupied = 1;
  		table->data[i].isDeleted = 0;
  		table->data[i].pv = NULL;
- 		table->data[i].line = line;
- 		strcpy(table->data[i].filename,filename);
 		return 0; //success
 	}
 	fprintf(stderr, "WARNING: Hash table full, please increase size.");
@@ -66,10 +64,11 @@ long long ht_getValue(hashTable* table, char* identifier) {
 }
 
 int ht_contains(hashTable* table, char* identifier) {
-	if(findPos(table, identifier) > -1)
+	if(findPos(table, identifier) > -1) {
 		return 1;
-	else
+	} else {
 		return 0;
+	}
 }
 
 //Insert key into hash table; return 0=success, 1=duplicate, 2=fail
@@ -141,9 +140,9 @@ int setPointer(hashTable* table, char* key, void* pv) {
 	int i;
 	if(-1 != (i = findPos(table, key))) {
 		table->data[i].pv = pv;
-		return 0; //success
+		return 1; //success
 	} else {
-		return 1; //not found
+		return 0; //not found
 	}
 }
 
@@ -172,25 +171,3 @@ void destroy_hashTable(hashTable* table) {
 	free(table->data);
 	free(table);
 }
-
-//Testing
-// int main() {
-// printf("HashTable Test\n");
-// 	hashTable* t = new_hashTable(10);
-// 	
-// 	tableInsert(t, "dolen", (void*) "le");
-// 	tableInsert(t, "gavin", (void*) "kaplan");
-// 	tableInsert(t, "tits", (void*) "mcgee");
-// 	hashTable* t2 = new_hashTable(10);
-// 	tableInsert(t2, "john", (void*) "biswa");
-// 	tableInsert(t2, "eric", (void*) "nguyen");
-// 	tableInsert(t2, "howard", (void*) "chen");
-// 	printf("%s\n", (char*) getPointer(t, "tits"));
-// 	printf("%s\n", (char*) getPointer(t, "john"));
-// 	printf("%s\n", (char*) getPointer(t, "dolen"));
-// 	printf("%s\n", (char*) getPointer(t2, "dolen"));
-// 	printf("%s\n", (char*) getPointer(t2, "howard"));
-// 	printf("%s\n", (char*) getPointer(t, "howard"));
-// 	printf("%s\n", (char*) getPointer(t2, "john"));
-// 	return 1;
-// }
