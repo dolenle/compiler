@@ -1,9 +1,10 @@
-//Linked List
+//Linked List of Hash Tables
 
 #ifndef _SYM_TABLE_H
 #define _SYM_TABLE_H
 
 #include "hash.h"
+#include "ast.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -32,11 +33,16 @@ symbolTable* enterScope(scopeType scope, int line, char* filename, symbolTable* 
 
 symbolTable* leaveScope(symbolTable* table, int free);
 
-int installSymbol(symbolTable* table, char* ident, char *filename, int linenumber, symType type);
+int installSymbol(symbolTable* table, char* ident, char *filename, int linenumber);
 
 int containsSymbol(symbolTable* table, char* ident); //return 1 if found, 0 if not
 
-int searchSymbol(symbolTable* table, char* ident); //search through all parent scopes
+//search through all parent scopes, return 1 if found, 0 if not
+int searchSymbol(symbolTable* table, char* ident);
+
+node* getNode(symbolTable* table, char* ident);
+
+int setNode(symbolTable* table, char* ident, node* astNode);
 
 //For Assignment 2
 int setSymbolValue(symbolTable* table, char* ident, long long val);

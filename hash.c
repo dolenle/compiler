@@ -26,7 +26,7 @@ hashTable* new_hashTable(int size) {
 	return table;
 }
 
-int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename, symType type) {
+int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename) {
 	//printf("addSymbol called\n");
 	if(table->filled < table->capacity) {
 		int i = hash(table, identifier); //get index
@@ -47,7 +47,6 @@ int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename, s
  		table->data[i].pv = NULL;
  		table->data[i].line = line;
  		strcpy(table->data[i].filename,filename);
- 		table->data[i].type = type;
 		return 0; //success
 	}
 	fprintf(stderr, "WARNING: Hash table full, please increase size.");
@@ -128,7 +127,7 @@ int tableRemove(hashTable* table, char* key) {
 	}
 }
 
-//Return item pointer, set optional boolean pointer flag if found
+//Return item pointer
 void* getPointer(hashTable* table, char* key) {
 	int i;
 	if(-1 != (i = findPos(table, key))) {

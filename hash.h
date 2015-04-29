@@ -11,12 +11,6 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef enum symType {
-	NUM,
-	STR,
-	CHR
-} symType;
-
 typedef struct hashItem {
 	char* key;
 	int isOccupied;
@@ -26,7 +20,6 @@ typedef struct hashItem {
 	long long value;
 	char filename[4096];
 	int line;
-	symType type;
 } hashItem;
 
 typedef struct hashTable {
@@ -37,7 +30,7 @@ typedef struct hashTable {
 
 hashTable* new_hashTable(int size);
 
-int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename, symType type);
+int ht_addSymbol(hashTable* table, char* identifier, int line, char* filename);
 
 int ht_contains(hashTable* table, char* identifier);
 
@@ -49,10 +42,12 @@ long long ht_getValue(hashTable* table, char* identifier);
 
 //Legacy Functions
 
+//returns 0 on success, 1 on duplicate, 2 on fail
 int tableInsert(hashTable* table, char* key, void* pv);
 
 void *getPointer(hashTable* table, char* key);
 
+//returns 0 on success, 1 if not found
 int setPointer(hashTable* table, char* key, void *pv);
 
 int tableRemove(hashTable* table, char* key);
