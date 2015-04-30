@@ -29,4 +29,12 @@ typedef enum namespaceType {
         TAG_SPACE,		//struct, enum, union tags
         STRUCT_SPACE	//struct and union
 } namespaceType;
+
+typedef struct node node; //some forward declaration
+
+struct ast {
+	node* topNode;
+	node* botNode;
+	int errorFlag;
+};
 #endif

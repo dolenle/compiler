@@ -7,8 +7,6 @@
 #include <string.h>
 #include <errno.h>
 
-typedef struct node node; //some forward declaration
-
 typedef enum nodeType {
 	DEFAULT_NODE=0,
 	IDENT_NODE,

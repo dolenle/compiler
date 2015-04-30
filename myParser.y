@@ -30,11 +30,7 @@ char currentSym[128]; //probably not the proper way to do this
 	void* noval;
 	
 	struct node* astNode;
-	struct ast {
-		node* topNode;
-		node* botNode;
-		int errorFlag;
-	} ast;
+	struct ast ast;
 	
 	struct num {
 		long long intBuff;
@@ -587,6 +583,11 @@ function_definition
 	;
 
 %%
+
+struct ast insertTopNode(struct ast a, node* t) {
+	node* currentTop = a.topNode;
+	return a;
+}
 
 node* doIdentThing(char* id) {
 	node* n = ast_newNode(IDENT_NODE);
