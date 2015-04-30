@@ -10,3 +10,7 @@ tester
 parser.exe
 parser
 *.exe
+*.stackdump
+myParser.tab.*
+myParser.output
+lex.yy.c

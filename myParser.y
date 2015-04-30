@@ -33,6 +33,7 @@ char currentSym[128]; //probably not the proper way to do this
 	struct ast {
 		node* topNode;
 		node* botNode;
+		int errorFlag;
 	} ast;
 	
 	struct num {
@@ -61,7 +62,8 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 shift_expression relational_expression equality_expression logical_or_expression
 logical_and_expression additive_expression assignment_expression expression
 
-%type <astNode> declarator direct_declarator
+%type <astNode> type_specifier
+%type <ast> declarator direct_declarator declaration_specifiers
 
 %start translation_unit;
 
@@ -240,12 +242,60 @@ declaration
 	;
 
 declaration_specifiers
-	: storage_class_specifier
-	| storage_class_specifier declaration_specifiers
-	| type_specifier
-	| type_specifier declaration_specifiers
-	| type_qualifier
-	| type_qualifier declaration_specifiers
+	: storage_class_specifier {yyerror("Unimplemented storage class");}
+	| storage_class_specifier declaration_specifiers {yyerror("Unimplemented storage class");}
+	| type_specifier	{
+							$$.botNode = $1;
+							$$.errorFlag = 0;
+							printf("singleType\n");
+						}
+	| type_specifier declaration_specifiers {
+			node* ts = $2.botNode; //get current type specifier
+			printf("entering $1 switch\n");
+			switch($1->u.scalar.type) {
+				case S_LONG:
+					switch(ts->u.scalar.type) {
+						case S_INT:
+							ts->u.scalar.type=S_LONG;
+							printf("long\n");
+							break;
+						case S_LONG:
+							ts->u.scalar.type=S_LONGLONG;
+							printf("longlong%i\n",ts->u.scalar.type);
+							break;
+						case S_DOUBLE:
+							ts->u.scalar.type=S_LONGDOUBLE;
+							break;
+						default:
+							goto err;
+					}
+					break;
+				case S_SHORT:
+					if(ts->u.scalar.type != S_INT) {
+						goto err;
+					}
+					break;
+				case S_SIGNED: //integer types only, signed by default
+					if(ts->u.scalar.type < S_CHAR || ts->u.scalar.type > S_LONGLONG)
+						goto err;
+					break;
+				case S_UNSIGNED:
+					if(ts->u.scalar.type >= S_CHAR && ts->u.scalar.type <= S_LONGLONG) {
+						ts->u.scalar.type*=2;
+						break;
+					} else {
+						goto err;
+					}
+			err:
+				default:
+					$$.errorFlag = 1;
+					yyerror("Invalid type specifier");
+					break;
+			}
+			$$.botNode = ts;
+		}
+	| type_qualifier {yyerror("Not implemented yet!");}
+	| type_qualifier declaration_specifiers {yyerror("Not implemented yet!");}
 	;
 
 init_declarator_list
@@ -255,7 +305,7 @@ init_declarator_list
 
 init_declarator
 	: declarator
-	| declarator '=' initializer
+	| declarator '=' initializer {yyerror("Unimplemented initialized declarator");}
 	;
 
 storage_class_specifier
@@ -267,18 +317,45 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID
-	| CHAR
-	| SHORT
-	| INT
-	| LONG
-	| FLOAT
-	| DOUBLE
-	| SIGNED
-	| UNSIGNED
-	| struct_or_union_specifier
-	| enum_specifier
-	| TYPEDEF_NAME
+	: VOID	{
+				$$ = ast_newNode(SCALAR_NODE);
+				$$->u.scalar.type = S_VOID;
+			}
+	| CHAR	{
+				$$ = ast_newNode(SCALAR_NODE);
+				$$->u.scalar.type = S_CHAR;
+			}
+	| SHORT	{
+				$$ = ast_newNode(SCALAR_NODE);
+				$$->u.scalar.type = S_SHORT;
+			}
+	| INT	{
+				$$ = ast_newNode(SCALAR_NODE);
+				$$->u.scalar.type = S_INT;
+			}
+	| LONG	{
+				$$ = ast_newNode(SCALAR_NODE);
+				$$->u.scalar.type = S_LONG;
+			}
+	| FLOAT	{
+				$$ = ast_newNode(SCALAR_NODE);
+				$$->u.scalar.type = S_FLOAT;
+			}
+	| DOUBLE	{
+					$$ = ast_newNode(SCALAR_NODE);
+					$$->u.scalar.type = S_DOUBLE;
+				}
+	| SIGNED	{
+					$$ = ast_newNode(SCALAR_NODE);
+					$$->u.scalar.type = S_SIGNED;
+				}
+	| UNSIGNED	{
+					$$ = ast_newNode(SCALAR_NODE);
+					$$->u.scalar.type = S_UNSIGNED;
+				}
+	| struct_or_union_specifier {yyerror("Unimplemented struct or union");}
+	| enum_specifier {yyerror("Unimplemented enum");}
+	| TYPEDEF_NAME {yyerror("Unimplemented typedef");}
 	;
 
 struct_or_union_specifier
@@ -305,7 +382,7 @@ specifier_qualifier_list
 	: type_specifier specifier_qualifier_list
 	| type_specifier
 	| type_qualifier specifier_qualifier_list
-	| type_qualifier
+	| type_qualifier								
 	;
 
 struct_declarator_list
@@ -346,7 +423,11 @@ declarator
 	;
 
 direct_declarator
-	: IDENT {$$ = doIdentThing($1);}
+	: IDENT {
+				node* n = doIdentThing($1);
+				$$.topNode = n;
+				$$.botNode = n;
+			}
 	| '(' declarator ')' {$$=$2;}
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'

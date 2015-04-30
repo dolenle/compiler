@@ -37,11 +37,11 @@ int main() {
 	printf("[Symbol Table Test]\n");
 	symbolTable* globalTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
 	printf("Created symTab\n");
-	installSymbol(globalTable, "test", "TestFileName.c", 12, NUM);
-	installSymbol(globalTable, "var2", "TestFileName.c", 13, NUM);
+	installSymbol(globalTable, "test");
+	installSymbol(globalTable, "var2");
 	setSymbolValue(globalTable, "test", 123);
-	installSymbol(globalTable, "var3", "TestFileName.c", 13, NUM);
-	installSymbol(globalTable, "var4", "TestFileName.c", 13, NUM);
+	installSymbol(globalTable, "var3");
+	installSymbol(globalTable, "var4");
 	printf("%lli\n", getSymbolValue(globalTable, "test"));
 	return 1;
 }
