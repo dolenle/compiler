@@ -11,6 +11,8 @@ typedef enum nodeType {
 	DEFAULT_NODE=0,
 	IDENT_NODE,
 	SCALAR_NODE,
+	POINTER_NODE,
+	ARRAY_NODE,
 	FUNCTION_NODE
 } nodeType;
 
@@ -27,6 +29,14 @@ typedef struct node_scalar {
 	int size;
 } node_scalar;
 
+typedef struct node_ptr {
+	struct node* next;
+} node_ptr;
+
+typedef struct node_array {
+	int length;
+} node_array;
+
 typedef struct node_func {
 	enum numType typeFlag;
 	int isInline;
@@ -35,9 +45,12 @@ typedef struct node_func {
 
 struct node {
 	nodeType type;
+	struct node* next;
 	union {
 		node_ident ident;
 		node_scalar scalar;
+		node_ptr pointer;
+		node_array array;
 		node_func function;
 	} u;
 };

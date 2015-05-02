@@ -14,6 +14,9 @@ void yyerror(const char* s);
 void doScopeThing();
 node* doIdentThing(char* id);
 
+struct ast astPushTop(struct ast a, node* t);
+struct ast astPushBot(struct ast a, node* t);
+
 extern int yylex();
 extern int line;
 char filename[4096];
@@ -44,7 +47,7 @@ char currentSym[128]; //probably not the proper way to do this
 
 %token <charBuff> CHARLIT
 %token <stringBuff> STRING IDENT
-%token <num.intBuff> NUMBER
+%token <num> NUMBER
 %token <noval> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR
 ELLIPSIS TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ ANDEQ OREQ XOREQ AUTO BREAK
 CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE
@@ -58,7 +61,7 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 shift_expression relational_expression equality_expression logical_or_expression
 logical_and_expression additive_expression assignment_expression expression
 
-%type <astNode> type_specifier
+%type <astNode> type_specifier pointer
 %type <ast> declarator direct_declarator declaration_specifiers
 
 %start translation_unit;
@@ -78,11 +81,11 @@ primary_expression
 				}
 			}
 	| NUMBER 	{
-					if (yylval.num.typeFlag == INT_T || yylval.num.typeFlag == LONG_T || yylval.num.typeFlag == LONGLONG_T)
+					if ($1.typeFlag == INT_T || $1.typeFlag == LONG_T || $1.typeFlag == LONGLONG_T)
                         $$ = yylval.num.intBuff;
 					else {
-                        $$ = (long long)yylval.num.realBuff;
-                        fprintf(stderr,"Truncating real number %Lg to integer %lld\n",yylval.num.realBuff,$$);
+                        $$ = (long long)$1.realBuff;
+                        fprintf(stderr,"Truncating real number %Lg to integer %lld\n",$1.realBuff,$$);
                         printf("exprval=%lld\n",$$);
 					}
 				}
@@ -234,7 +237,8 @@ constant_expression
 
 declaration
 	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
+	| declaration_specifiers init_declarator_list ';' {
+		}
 	;
 
 declaration_specifiers
@@ -414,18 +418,32 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator
-	| direct_declarator
+	: pointer direct_declarator {
+			//$1->u.pointer.next = $2.topNode;
+			//$$.topNode = $1;
+			//$$.botNode = $2.topNode;
+			$$ = astPushBot($2, $1);
+		}
+	| direct_declarator {$$ = $1;}
 	;
 
 direct_declarator
 	: IDENT {
-				node* n = doIdentThing($1);
-				$$.topNode = n;
-				$$.botNode = n;
-			}
+			node* n = doIdentThing($1);
+			if(n)
+				$$ = astPushTop($$, n);
+		}
 	| '(' declarator ')' {$$=$2;}
-	| direct_declarator '[' constant_expression ']'
+	| direct_declarator '[' NUMBER ']' {
+			//Array Declarator
+			if ($3.typeFlag == INT_T && $3.intBuff >= 0) {
+				node* n = ast_newNode(ARRAY_NODE);
+				n->u.array.length = $3.intBuff;
+				$$ = astPushBot($1, n);
+			} else {
+				yyerror("invalid array declaration");
+			}
+		}
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')'
 	| direct_declarator '(' identifier_list ')'
@@ -433,10 +451,14 @@ direct_declarator
 	;
 
 pointer
-	: '*'
-	| '*' type_qualifier_list
-	| '*' pointer
-	| '*' type_qualifier_list pointer
+	: '*' {printf("pointer!\n"); $$ = ast_newNode(POINTER_NODE);}
+	| '*' type_qualifier_list {}
+	| '*' pointer {
+			printf("pointer again!\n");
+			$$ = ast_newNode(POINTER_NODE);
+			$$->next = $2;
+		}
+	| '*' type_qualifier_list pointer {}
 	;
 
 type_qualifier_list
@@ -522,11 +544,13 @@ declaration_list
 
 compound_statement
 	: '{' '}' {
-			//TODO: fix later
+			yyerror("empty block");
 	}
-	| '{' {doScopeThing();} declaration_or_statement_list '}' {
+	| '{' {
+			doScopeThing();
+		} declaration_or_statement_list '}' {
 			currentTable = leaveScope(currentTable, 0);
-	}
+		}
 	;
 
 declaration_or_statement_list
@@ -584,8 +608,26 @@ function_definition
 
 %%
 
-struct ast insertTopNode(struct ast a, node* t) {
+struct ast astPushTop(struct ast a, node* t) {
 	node* currentTop = a.topNode;
+	t->next = currentTop;
+	a.topNode = t;
+	if(!a.botNode) {
+		a.botNode = t;
+	}
+	return a;
+}
+
+struct ast astPushBot(struct ast a, node* t) {
+	if(a.botNode) {
+		node* currentBot = a.botNode;
+		currentBot->next = t;
+	}
+	a.botNode = t;
+	if(!a.topNode) {
+		a.topNode = t;
+		printf("ok4\n");
+	}
 	return a;
 }
 

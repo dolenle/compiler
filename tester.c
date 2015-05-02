@@ -9,7 +9,7 @@ void ht_test_print(hashTable* table, char* key) {
 }
 
 int main() {
-	printf("HashTable Test\n");
+	printf("HashTable Test%i\n",++note);
 	
 	hashTable* t = new_hashTable(10);
 	tableInsert(t, "dolen", (void*) "le");
