@@ -244,7 +244,9 @@ declaration
 			yyerror("useless and empty declaration");
 		}
 	| declaration_specifiers init_declarator_list ';' {
-			if(!$1.errorFlag) {
+			if(!$1.errorFlag && !$2.errorFlag) {
+				printf("parsing AST....\n");
+				//Do some printing...
 				node* dc = $2.topNode; //declarator
 				printf("%s\n", nodeText[dc->type]);
 				while(dc != $2.botNode) {
