@@ -4,6 +4,7 @@
 #include "globls.h"
 #include "syms.h"
 #include "ast.h"
+#include "print.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,8 +15,11 @@ void yyerror(const char* s);
 void doScopeThing();
 node* doIdentThing(char* id);
 
-struct ast astPushTop(struct ast a, node* t);
-struct ast astPushBot(struct ast a, node* t);
+void initAST(struct ast *a);
+struct ast prependNode(struct ast a, node* t);
+struct ast appendNode(struct ast a, node* t);
+struct ast prependAST(struct ast a, struct ast b);
+struct ast appendAST(struct ast a, struct ast b);
 
 extern int yylex();
 extern int line;
@@ -61,8 +65,8 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 shift_expression relational_expression equality_expression logical_or_expression
 logical_and_expression additive_expression assignment_expression expression
 
-%type <astNode> type_specifier pointer
-%type <ast> declarator direct_declarator declaration_specifiers
+%type <astNode> type_specifier
+%type <ast> init_declarator init_declarator_list declarator direct_declarator declaration_specifiers pointer
 
 %start translation_unit;
 
@@ -236,8 +240,26 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers ';'
+	: declaration_specifiers ';' {
+			yyerror("useless and empty declaration");
+		}
 	| declaration_specifiers init_declarator_list ';' {
+			if(!$1.errorFlag) {
+				node* dc = $2.topNode; //declarator
+				printf("%s\n", nodeText[dc->type]);
+				while(dc != $2.botNode) {
+					dc = dc->next;
+					printf("%s\n", nodeText[dc->type]);
+				}
+				
+				node* ds = $1.topNode; //specifier
+				if(ds->type == SCALAR_NODE)
+					printf("scalar type %s\n", scalarTypes[ds->u.scalar.type]);
+				while(ds != $1.botNode) {
+					if(ds->type == SCALAR_NODE)
+						printf("scalar type %s\n", scalarTypes[ds->u.scalar.type]);
+				}
+			}
 		}
 	;
 
@@ -245,14 +267,21 @@ declaration_specifiers
 	: storage_class_specifier {yyerror("Unimplemented storage class");}
 	| storage_class_specifier declaration_specifiers {yyerror("Unimplemented storage class");}
 	| type_specifier	{
-							$$.botNode = $1;
+							$$ = appendNode($$, $1);
 							$$.errorFlag = 0;
-							printf("singleType\n");
 						}
 	| type_specifier declaration_specifiers {
-			node* ts = $2.botNode; //get current type specifier
-			printf("entering $1 switch\n");
+			node* ts = $2.botNode; //get current type specifier from bottom
 			switch($1->u.scalar.type) {
+				case S_INT:
+					{
+						int x = ts->u.scalar.type;
+						if(!(x==S_SHORT || x==S_USHORT || x==S_LONG || x==S_ULONG || 
+							x==S_LONGLONG || x==S_ULONGLONG)) {
+							goto err;
+						}
+						break;
+					}
 				case S_LONG:
 					switch(ts->u.scalar.type) {
 						case S_INT:
@@ -292,6 +321,7 @@ declaration_specifiers
 					yyerror("Invalid type specifier");
 					break;
 			}
+			$$.topNode = ts; //REMOVE THIS WHEN OTHER SPECIFIERS IMPLEMENTED
 			$$.botNode = ts;
 		}
 	| type_qualifier {yyerror("Not implemented yet!");}
@@ -299,12 +329,14 @@ declaration_specifiers
 	;
 
 init_declarator_list
-	: init_declarator
-	| init_declarator_list ',' init_declarator
+	: init_declarator {$$ = $1;}
+	| init_declarator_list ',' init_declarator {
+			$$ = appendAST($1, $3);
+		}
 	;
 
 init_declarator
-	: declarator
+	: declarator {$$ = $1;}
 	| declarator '=' initializer {yyerror("Unimplemented initialized declarator");}
 	;
 
@@ -422,7 +454,14 @@ declarator
 			//$1->u.pointer.next = $2.topNode;
 			//$$.topNode = $1;
 			//$$.botNode = $2.topNode;
-			$$ = astPushBot($2, $1);
+			int x = 1;
+			node* s = $1.topNode;
+			while(s != $1.botNode) {
+				x++;
+				s = s->next;
+			}
+			printf("ptrCount=%i\n",x);
+			$$ = appendAST($2, $1);
 		}
 	| direct_declarator {$$ = $1;}
 	;
@@ -430,8 +469,12 @@ declarator
 direct_declarator
 	: IDENT {
 			node* n = doIdentThing($1);
-			if(n)
-				$$ = astPushTop($$, n);
+			initAST(&$$);
+			if(n) {
+				$$ = prependNode($$, n);
+			} else {
+				$$.errorFlag = 1;
+			}
 		}
 	| '(' declarator ')' {$$=$2;}
 	| direct_declarator '[' NUMBER ']' {
@@ -439,7 +482,7 @@ direct_declarator
 			if ($3.typeFlag == INT_T && $3.intBuff >= 0) {
 				node* n = ast_newNode(ARRAY_NODE);
 				n->u.array.length = $3.intBuff;
-				$$ = astPushBot($1, n);
+				$$ = appendNode($1, n);
 			} else {
 				yyerror("invalid array declaration");
 			}
@@ -451,12 +494,17 @@ direct_declarator
 	;
 
 pointer
-	: '*' {printf("pointer!\n"); $$ = ast_newNode(POINTER_NODE);}
+	: '*' {
+			initAST(&$$);
+			$$ = appendNode($$, ast_newNode(POINTER_NODE));
+			if($$.botNode != $$.topNode)
+				printf("ERROR NOT EQ\n");
+		}
 	| '*' type_qualifier_list {}
 	| '*' pointer {
-			printf("pointer again!\n");
-			$$ = ast_newNode(POINTER_NODE);
-			$$->next = $2;
+			$$ = appendNode($2, ast_newNode(POINTER_NODE));
+			if($$.botNode == $$.topNode)
+				printf("ERROR WHY EQ\n");
 		}
 	| '*' type_qualifier_list pointer {}
 	;
@@ -607,8 +655,13 @@ function_definition
 	;
 
 %%
+void initAST(struct ast *a) {
+	a->topNode = NULL;
+	a->botNode = NULL;
+	a->errorFlag = 0;
+}
 
-struct ast astPushTop(struct ast a, node* t) {
+struct ast prependNode(struct ast a, node* t) {
 	node* currentTop = a.topNode;
 	t->next = currentTop;
 	a.topNode = t;
@@ -618,7 +671,7 @@ struct ast astPushTop(struct ast a, node* t) {
 	return a;
 }
 
-struct ast astPushBot(struct ast a, node* t) {
+struct ast appendNode(struct ast a, node* t) {
 	if(a.botNode) {
 		node* currentBot = a.botNode;
 		currentBot->next = t;
@@ -626,8 +679,19 @@ struct ast astPushBot(struct ast a, node* t) {
 	a.botNode = t;
 	if(!a.topNode) {
 		a.topNode = t;
-		printf("ok4\n");
 	}
+	return a;
+}
+
+struct ast prependAST(struct ast a, struct ast b) {
+	a = prependNode(a, b.botNode);
+	a.topNode = b.topNode;
+	return a;
+}
+
+struct ast appendAST(struct ast a, struct ast b) {
+	a = appendNode(a, b.topNode);
+	a.botNode = b.botNode;
 	return a;
 }
 
@@ -635,6 +699,7 @@ node* doIdentThing(char* id) {
 	node* n = ast_newNode(IDENT_NODE);
 	n->u.ident.ns = currentNamespace;
 	n->u.ident.line = line;
+	n->u.ident.id = id;
 	//TODO: dont install if unnamed struct
 	if(!containsSymbol(currentTable, id)) {
 		installSymbol(currentTable, id);

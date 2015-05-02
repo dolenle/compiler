@@ -30,7 +30,7 @@ symbolTable* leaveScope(symbolTable* table, int free) {
 }
 
 int installSymbol(symbolTable* table, char* ident) {
-	printf("installSym symbol=%s\n", ident);
+	//printf("installSym symbol=%s\n", ident);
 	return ht_addSymbol(table->mainTable, ident);
 }
 

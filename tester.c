@@ -8,9 +8,7 @@ void ht_test_print(hashTable* table, char* key) {
 		printf("%s%s%s\n", "Error, key ",key," not found");
 }
 
-int main() {
-	printf("HashTable Test%i\n",++note);
-	
+int main() {	
 	hashTable* t = new_hashTable(10);
 	tableInsert(t, "dolen", (void*) "le");
 	tableInsert(t, "gavin", (void*) "kaplan");
@@ -46,6 +44,7 @@ int main() {
 	return 1;
 }
 
+const;
 void foo() {
 	int x;
 	{

@@ -19,9 +19,9 @@ typedef enum nodeType {
 //Define structs for the various node types
 
 typedef struct node_ident {
-	struct node* next;
 	namespaceType ns;
 	int line;
+	char* id;
 } node_ident;
 
 typedef struct node_scalar {
