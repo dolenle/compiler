@@ -23,6 +23,14 @@ typedef enum scalarType {
 	S_UCHAR=12, S_USHORT=14, S_UINT=16, S_ULONG=18, S_ULONGLONG=20
 } scalarType;
 
+typedef enum storageType {
+	SG_TYPEDEF,
+	SG_EXTERN,
+	SG_AUTO,
+	SG_STATIC,
+	SG_REGISTER
+} storageType;
+
 typedef enum namespaceType {
 		DEFAULT_SPACE,  //enum constants, typedef names, vars and funcs
         LABEL_SPACE,

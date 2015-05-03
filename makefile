@@ -1,5 +1,5 @@
-parser: myParser.tab.o lex.yy.o syms.o hash.o ast.o
-	gcc -o parser myParser.tab.o lex.yy.o syms.o hash.o ast.o
+c--: myParser.tab.o lex.yy.o syms.o hash.o ast.o
+	gcc -o c-- myParser.tab.o lex.yy.o syms.o hash.o ast.o
 
 tester: tester.o syms.o hash.o
 	gcc -o tester tester.o syms.o hash.o

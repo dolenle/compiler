@@ -65,7 +65,7 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 shift_expression relational_expression equality_expression logical_or_expression
 logical_and_expression additive_expression assignment_expression expression
 
-%type <astNode> type_specifier
+%type <astNode> type_specifier storage_class_specifier
 %type <ast> init_declarator init_declarator_list declarator direct_declarator declaration_specifiers pointer
 
 %start translation_unit;
@@ -230,6 +230,7 @@ assignment_operator
 	| XOREQ {$$ = XOREQ;}
 	;
 */
+
 expression
 	: assignment_expression
 	| expression ',' assignment_expression
@@ -245,29 +246,63 @@ declaration
 		}
 	| declaration_specifiers init_declarator_list ';' {
 			if(!$1.errorFlag && !$2.errorFlag) {
-				printf("parsing AST....\n");
 				//Do some printing...
+				printf("\nparsing AST....\n\n");
 				node* dc = $2.topNode; //declarator
-				printf("%s\n", nodeText[dc->type]);
-				while(dc != $2.botNode) {
-					dc = dc->next;
-					printf("%s\n", nodeText[dc->type]);
-				}
-				
-				node* ds = $1.topNode; //specifier
-				if(ds->type == SCALAR_NODE)
-					printf("scalar type %s\n", scalarTypes[ds->u.scalar.type]);
-				while(ds != $1.botNode) {
-					if(ds->type == SCALAR_NODE)
-						printf("scalar type %s\n", scalarTypes[ds->u.scalar.type]);
-				}
+				do {
+					node* ds = $1.topNode; //specifier
+					
+					if(dc->type == IDENT_NODE) {
+						if(ds->type == STORAGE_NODE) { //set storage class
+							dc->u.ident.stor = ds->u.storage.type;
+							if(ds != $1.botNode)
+								ds = ds->next;
+						} else {
+							dc->u.ident.stor = SG_AUTO;
+						}
+						printf("identifier \"%s\" declared on line %i, storage class %s\n",
+						dc->u.ident.id, dc->u.ident.line, storageText[dc->u.ident.stor]);
+
+					}
+					while(dc != $2.botNode && dc->next->type == ARRAY_NODE) {
+						printf("array of\n");
+						dc = dc->next;
+					}
+					while(dc != $2.botNode && dc->next->type == POINTER_NODE) {
+						printf("pointer to\n");
+						dc = dc->next;
+					}
+					do {
+						if(ds->type == SCALAR_NODE)
+							printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
+						else
+							printf("unexpected nodeType %i\n", ds->type);
+						if(ds != $1.botNode)
+							ds = ds->next;
+					} while(ds != $1.botNode);
+					
+					printf("\n");
+					if(dc != $2.botNode)
+						dc = dc->next;
+					else
+						break;
+				} while(1);
 			}
 		}
 	;
 
 declaration_specifiers
-	: storage_class_specifier {yyerror("Unimplemented storage class");}
-	| storage_class_specifier declaration_specifiers {yyerror("Unimplemented storage class");}
+	: storage_class_specifier {
+			$$ = prependNode($$, $1);
+			$$.errorFlag = 0;
+		}
+	| storage_class_specifier declaration_specifiers {
+			if($2.topNode->type == STORAGE_NODE) {
+				yyerror("Multiple storage class specifiers");
+			} else {
+				$$ = prependNode($$, $1);
+			}
+		}
 	| type_specifier	{
 							$$ = appendNode($$, $1);
 							$$.errorFlag = 0;
@@ -288,11 +323,9 @@ declaration_specifiers
 					switch(ts->u.scalar.type) {
 						case S_INT:
 							ts->u.scalar.type=S_LONG;
-							printf("long\n");
 							break;
 						case S_LONG:
 							ts->u.scalar.type=S_LONGLONG;
-							printf("longlong%i\n",ts->u.scalar.type);
 							break;
 						case S_DOUBLE:
 							ts->u.scalar.type=S_LONGDOUBLE;
@@ -312,7 +345,8 @@ declaration_specifiers
 					break;
 				case S_UNSIGNED:
 					if(ts->u.scalar.type >= S_CHAR && ts->u.scalar.type <= S_LONGLONG) {
-						ts->u.scalar.type*=2;
+						ts->u.scalar.type = ts->u.scalar.type*2;
+						//printf("newType=%i",ts->u.scalar.type);
 						break;
 					} else {
 						goto err;
@@ -323,11 +357,16 @@ declaration_specifiers
 					yyerror("Invalid type specifier");
 					break;
 			}
-			$$.topNode = ts; //REMOVE THIS WHEN OTHER SPECIFIERS IMPLEMENTED
+			if($$.topNode->type != SCALAR_NODE) {
+				$$.topNode->next = ts;
+			} else {
+				$$.topNode = ts;
+			}
 			$$.botNode = ts;
+			//printf("newType=%i",$$.botNode->u.scalar.type);
 		}
-	| type_qualifier {yyerror("Not implemented yet!");}
-	| type_qualifier declaration_specifiers {yyerror("Not implemented yet!");}
+	| type_qualifier {yyerror("Unimplemented Type Qualifier");}
+	| type_qualifier declaration_specifiers {yyerror("Unimplemented Type Qualifier");}
 	;
 
 init_declarator_list
@@ -343,11 +382,26 @@ init_declarator
 	;
 
 storage_class_specifier
-	: TYPEDEF
-	| EXTERN
-	| STATIC
-	| AUTO
-	| REGISTER
+	: TYPEDEF {
+			$$ = ast_newNode(STORAGE_NODE);
+			$$->u.scalar.type = SG_TYPEDEF;
+		}
+	| EXTERN {
+			$$ = ast_newNode(STORAGE_NODE);
+			$$->u.scalar.type = SG_EXTERN;
+		}
+	| STATIC {
+			$$ = ast_newNode(STORAGE_NODE);
+			$$->u.scalar.type = SG_STATIC;
+		}
+	| AUTO {
+			$$ = ast_newNode(STORAGE_NODE);
+			$$->u.scalar.type = SG_AUTO;
+		}
+	| REGISTER {
+			$$ = ast_newNode(STORAGE_NODE);
+			$$->u.scalar.type = SG_REGISTER;
+		}
 	;
 
 type_specifier
@@ -453,16 +507,6 @@ type_qualifier
 
 declarator
 	: pointer direct_declarator {
-			//$1->u.pointer.next = $2.topNode;
-			//$$.topNode = $1;
-			//$$.botNode = $2.topNode;
-			int x = 1;
-			node* s = $1.topNode;
-			while(s != $1.botNode) {
-				x++;
-				s = s->next;
-			}
-			printf("ptrCount=%i\n",x);
 			$$ = appendAST($2, $1);
 		}
 	| direct_declarator {$$ = $1;}
@@ -708,7 +752,9 @@ node* doIdentThing(char* id) {
 		setNode(currentTable, id, n);
 		return n;
 	} else {
-		yyerror("Redeclaration of variable");
+		char* buf = malloc(1024);
+		sprintf(buf, "Redeclaration of variable %s", id);
+		yyerror(buf);
 		return NULL;
 	}
 }
@@ -726,7 +772,7 @@ void yyerror(const char* s) {
 }
 
 int main(int argc, char** argv) {
-	printf("[Parser Begin]\n");
+	printf("[C--, The Shitty C Parser]\n");
 	strcpy(filename, "Placeholder.c");
 	currentTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
 	yyparse();
