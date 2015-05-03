@@ -257,6 +257,8 @@ declaration
 							dc->u.ident.stor = ds->u.storage.type;
 							if(ds != $1.botNode)
 								ds = ds->next;
+						} else if(currentTable->scope == GLOBAL_SCOPE) {
+							dc->u.ident.stor = SG_STATIC;
 						} else {
 							dc->u.ident.stor = SG_AUTO;
 						}
@@ -552,14 +554,13 @@ pointer
 			if($$.botNode == $$.topNode)
 				printf("ERROR WHY EQ\n");
 		}
-	| '*' type_qualifier_list pointer {}
+	| '*' type_qualifier_list pointer {/*type qualifier Not Implemented*/}
 	;
 
 type_qualifier_list
 	: type_qualifier
 	| type_qualifier_list type_qualifier
 	;
-
 
 parameter_type_list
 	: parameter_list
