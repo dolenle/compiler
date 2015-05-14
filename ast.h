@@ -44,9 +44,7 @@ typedef struct node_array {
 } node_array;
 
 typedef struct node_func {
-	enum numType typeFlag;
-	int isInline;
-	int isDefined;
+	
 } node_func;
 
 struct node {

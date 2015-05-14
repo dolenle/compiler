@@ -301,6 +301,7 @@ declaration_specifiers
 	| storage_class_specifier declaration_specifiers {
 			if($2.topNode->type == STORAGE_NODE) {
 				yyerror("Multiple storage class specifiers");
+				$$.errorFlag = 1;
 			} else {
 				$$ = prependNode($$, $1);
 			}
@@ -374,7 +375,9 @@ declaration_specifiers
 init_declarator_list
 	: init_declarator {$$ = $1;}
 	| init_declarator_list ',' init_declarator {
-			$$ = appendAST($1, $3);
+			if(!$3.errorFlag) {
+				$$ = appendAST($1, $3);
+			}
 		}
 	;
 
@@ -509,7 +512,11 @@ type_qualifier
 
 declarator
 	: pointer direct_declarator {
-			$$ = appendAST($2, $1);
+			if(!$2.errorFlag && !$1.errorFlag) {
+				$$ = appendAST($2, $1);
+			} else {
+				$$.errorFlag = 1;
+			}
 		}
 	| direct_declarator {$$ = $1;}
 	;
@@ -517,7 +524,7 @@ declarator
 direct_declarator
 	: IDENT {
 			node* n = doIdentThing($1);
-			initAST(&$$);
+			//initAST(&$$);
 			if(n) {
 				$$ = prependNode($$, n);
 			} else {
@@ -545,14 +552,10 @@ pointer
 	: '*' {
 			initAST(&$$);
 			$$ = appendNode($$, ast_newNode(POINTER_NODE));
-			if($$.botNode != $$.topNode)
-				printf("ERROR NOT EQ\n");
 		}
 	| '*' type_qualifier_list {}
 	| '*' pointer {
 			$$ = appendNode($2, ast_newNode(POINTER_NODE));
-			if($$.botNode == $$.topNode)
-				printf("ERROR WHY EQ\n");
 		}
 	| '*' type_qualifier_list pointer {/*type qualifier Not Implemented*/}
 	;
