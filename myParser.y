@@ -280,6 +280,9 @@ declaration
 						} else if(dc->next->type == POINTER_NODE) {
 							printf("pointer to\n");
 							dc = dc->next;
+						} else if(dc->next->type == FUNCTION_NODE) {
+							printf("function returning\n");
+							dc = dc->next;
 						}
 					}
 
@@ -559,7 +562,10 @@ direct_declarator
 		}
 	| direct_declarator '(' parameter_type_list ')' {yyerror("Unimplemented function prototype");}
 	| direct_declarator '(' identifier_list ')' {yyerror("Unimplemented function prototype");}
-	| direct_declarator '(' ')'
+	| direct_declarator '(' ')' {
+			node* n = ast_newNode(FUNCTION_NODE);
+			$$ = appendNode($1, n);
+		}
 	;
 
 pointer
@@ -657,7 +663,7 @@ declaration_list
 compound_statement
 	: '{' '}' {
 			yyerror("empty block");
-	}
+		}
 	| '{' {
 			doScopeThing();
 		} declaration_or_statement_list '}' {
@@ -759,7 +765,7 @@ struct ast appendAST(struct ast a, struct ast b) {
 	return a;
 }
 
-node* doIdentThing(char* id) {
+node* doIdentThing(char* id) { //identifier declared
 	node* n = ast_newNode(IDENT_NODE);
 	n->u.ident.ns = currentNamespace;
 	n->u.ident.line = line;
