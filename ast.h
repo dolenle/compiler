@@ -44,7 +44,9 @@ typedef struct node_array {
 } node_array;
 
 typedef struct node_func {
-	
+	struct node* returnType;
+	struct node* params_top;
+	struct node* params_bot;
 } node_func;
 
 struct node {

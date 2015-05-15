@@ -246,9 +246,17 @@ declaration
 		}
 	| declaration_specifiers init_declarator_list ';' {
 			if(!$1.errorFlag && !$2.errorFlag) {
-				//Do some printing...
 				printf("\nparsing AST....\n\n");
 				node* dc = $2.topNode; //declarator
+				
+				node* tmp = $2.topNode;
+				while(tmp!= $2.botNode) {
+					printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+					tmp = tmp->next;
+				}
+				printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+
+				
 				do {
 					node* ds = $1.topNode; //specifier
 					
@@ -266,14 +274,16 @@ declaration
 						dc->u.ident.id, dc->u.ident.line, storageText[dc->u.ident.stor]);
 
 					}
-					while(dc != $2.botNode && dc->next->type == ARRAY_NODE) {
-						printf("array of\n");
-						dc = dc->next;
+					while(dc != $2.botNode) {
+						if(dc->next->type == ARRAY_NODE) {
+							dc = dc->next;
+							printf("array of length %i containing \n", dc->u.array.length);
+						} else if(dc->next->type == POINTER_NODE) {
+							printf("pointer to\n");
+							dc = dc->next;
+						}
 					}
-					while(dc != $2.botNode && dc->next->type == POINTER_NODE) {
-						printf("pointer to\n");
-						dc = dc->next;
-					}
+
 					do {
 						if(ds->type == SCALAR_NODE)
 							printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
@@ -531,7 +541,7 @@ direct_declarator
 				$$.errorFlag = 1;
 			}
 		}
-	| '(' declarator ')' {$$=$2;}
+	| '(' declarator ')' {printf("declarator in parentheses\n");$$=$2;}
 	| direct_declarator '[' NUMBER ']' {
 			//Array Declarator
 			if ($3.typeFlag == INT_T && $3.intBuff >= 0) {
@@ -542,9 +552,14 @@ direct_declarator
 				yyerror("invalid array declaration");
 			}
 		}
-	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')'
-	| direct_declarator '(' identifier_list ')'
+	| direct_declarator '[' ']' {
+			//Array Declarator
+			node* n = ast_newNode(ARRAY_NODE);
+			n->u.array.length = -1;
+			$$ = appendNode($1, n);
+		}
+	| direct_declarator '(' parameter_type_list ')' {yyerror("Unimplemented function prototype");}
+	| direct_declarator '(' identifier_list ')' {yyerror("Unimplemented function prototype");}
 	| direct_declarator '(' ')'
 	;
 
@@ -567,7 +582,7 @@ type_qualifier_list
 
 parameter_type_list
 	: parameter_list
-	| parameter_list ',' ELLIPSIS
+	| parameter_list ',' ELLIPSIS {yyerror("Unimplemented variadic function");}
 	;
 
 parameter_list

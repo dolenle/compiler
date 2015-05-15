@@ -2,12 +2,13 @@
 #define _PRINT_H
 
 char* nodeText[] = {
-	"<DEFAULT> node",
-	"identifier",
-	"scalar of type",
-	"pointer to",
-	"array of",
-	"function with",
+	"DEFAULT",
+	"IDENT",
+	"SCALAR",
+	"STORAGE",
+	"POINTER",
+	"ARRAY",
+	"FUNCTION"
 };
 
 char* scalarText[] = {

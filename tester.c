@@ -44,7 +44,7 @@ int main() {
 	return 1;
 }
 
-const;
+int **a[3];
 void foo() {
 	int x;
 	{
