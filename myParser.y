@@ -248,23 +248,22 @@ declaration
 			if(!$1.errorFlag && !$2.errorFlag) {
 				printf("\nparsing AST....\n\n");
 				node* dc = $2.topNode; //declarator
-				
-				node* tmp = $2.topNode;
-				while(tmp!= $2.botNode) {
-					printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-					tmp = tmp->next;
-				}
-				printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
 
-				
 				do {
 					node* ds = $1.topNode; //specifier
 					
 					if(dc->type == IDENT_NODE) {
 						if(ds->type == STORAGE_NODE) { //set storage class
-							dc->u.ident.stor = ds->u.storage.type;
-							if(ds != $1.botNode)
+							if(currentTable->scope == GLOBAL_SCOPE &&
+								(ds->u.storage.type != SG_STATIC || ds->u.storage.type != SG_EXTERN)) {
+								yyerror("Invalid file-scope declaration, defaulting to STATIC");
+								dc->u.ident.stor = SG_STATIC;
+							} else {
+								dc->u.ident.stor = ds->u.storage.type;
+							}
+							if(ds != $1.botNode) {
 								ds = ds->next;
+							}
 						} else if(currentTable->scope == GLOBAL_SCOPE) {
 							dc->u.ident.stor = SG_STATIC;
 						} else {
@@ -313,7 +312,7 @@ declaration_specifiers
 				yyerror("Multiple storage class specifiers");
 				$$.errorFlag = 1;
 			} else {
-				$$ = prependNode($$, $1);
+				$$ = prependNode($2, $1);
 			}
 		}
 	| type_specifier	{
@@ -541,7 +540,7 @@ direct_declarator
 				$$.errorFlag = 1;
 			}
 		}
-	| '(' declarator ')' {printf("declarator in parentheses\n");$$=$2;}
+	| '(' declarator ')' {$$=$2;}
 	| direct_declarator '[' NUMBER ']' {
 			//Array Declarator
 			if ($3.typeFlag == INT_T && $3.intBuff >= 0) {
