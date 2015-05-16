@@ -14,7 +14,10 @@ typedef enum nodeType {
 	STORAGE_NODE,
 	POINTER_NODE,
 	ARRAY_NODE,
-	FUNCTION_NODE
+	FUNCTION_NODE,
+	NUMBER_NODE,
+	BINOP_NODE,
+	UNOP_NODE
 } nodeType;
 
 //Define structs for the various node types
@@ -49,6 +52,23 @@ typedef struct node_func {
 	struct node* params_bot;
 } node_func;
 
+typedef struct node_num {
+	long long value;
+	numType typeFlag;
+	signType signFlag;
+} node_num;
+
+typedef struct node_binop {
+	node* lvalue;
+	node* rvalue;
+	binopType type;
+} node_binop;
+
+typedef struct node_unop {
+	node* operand;
+	unopType type;
+} node_unop;
+
 struct node {
 	nodeType type;
 	struct node* next;
@@ -59,6 +79,9 @@ struct node {
 		node_ptr pointer;
 		node_array array;
 		node_func function;
+		node_num number;
+		node_binop binop;
+		node_unop unop;
 	} u;
 };
 

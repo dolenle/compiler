@@ -61,12 +61,14 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 %left ELSE
 %left IF
 
-%type <num.intBuff> initializer primary_expression unary_expression cast_expression
+%type <num.intBuff> initializer
 shift_expression relational_expression equality_expression logical_or_expression
 logical_and_expression additive_expression assignment_expression expression
 
-%type <astNode> type_specifier storage_class_specifier
-%type <ast> init_declarator init_declarator_list declarator direct_declarator declaration_specifiers pointer
+%type <astNode> type_specifier storage_class_specifier primary_expression cast_expression
+multiplicative_expression unary_expression postfix_expression
+%type <ast> init_declarator init_declarator_list declarator direct_declarator pointer
+declaration_specifiers
 
 %start translation_unit;
 
@@ -74,31 +76,41 @@ logical_and_expression additive_expression assignment_expression expression
 
 primary_expression
 	: IDENT {
-				if(containsSymbol(currentTable, $1)) {
-					$$ = getSymbolValue(currentTable, $1);
-					strcpy(currentSym, $1);
-					printf("exprval: %lli\n",$$);
-				} else if(searchSymbol(currentTable, $1)) {
+			if(containsSymbol(currentTable, $1)) {
+				//$$ = getSymbolValue(currentTable, $1);
+				//strcpy(currentSym, $1);
+				//printf("exprval: %lli\n",$$);
+				$$ = getNode(currentTable, $1);
+			} else {
+				symbolTable* parent = searchSymbol(currentTable, $1);
+				if(parent) {
 					printf("Symbol found in outer scope\n");
 				} else {
 					yyerror("Symbol not found");
 				}
 			}
-	| NUMBER 	{
-					if ($1.typeFlag == INT_T || $1.typeFlag == LONG_T || $1.typeFlag == LONGLONG_T)
-                        $$ = yylval.num.intBuff;
-					else {
-                        $$ = (long long)$1.realBuff;
-                        fprintf(stderr,"Truncating real number %Lg to integer %lld\n",$1.realBuff,$$);
-                        printf("exprval=%lld\n",$$);
-					}
-				}
+		}
+	| NUMBER {
+			$$ = ast_newNode(NUMBER_NODE);
+			printf("Number Node\n");
+			if ($1.typeFlag == INT_T || $1.typeFlag == LONG_T || $1.typeFlag == LONGLONG_T) {
+				//$$ = yylval.num.intBuff;
+				$$->u.number.value = $1.intBuff;
+			} else {
+				$$->u.number.value = (long long)$1.realBuff;
+			}
+			$$->u.number.typeFlag = $1.typeFlag;
+			$$->u.number.signFlag = $1.signFlag;
+		}
 	| STRING {yyerror("Strings not supported.");}
 	| '(' expression ')' {}
 	;
 	
 postfix_expression
-	: primary_expression
+	: primary_expression {
+			//$$ = appendNode($$, $1);
+			$$=$1;
+		}
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
@@ -114,33 +126,78 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression {}
-	| unary_operator cast_expression {}
-	| PLUSPLUS unary_expression {}
-	| MINUSMINUS unary_expression {}
+	: postfix_expression {
+			$$ = $1;
+		}
+	| '&' cast_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = ADDR_OP;
+			$$->u.unop.operand = $2;
+		}
+	| '*' cast_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = DEREF_OP;
+			$$->u.unop.operand = $2;
+		}
+	| '+' cast_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = POS_OP;
+			$$->u.unop.operand = $2;	
+		}
+	| '-' cast_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = NEG_OP;
+			$$->u.unop.operand = $2;
+		}
+	| '~' cast_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = NOT_OP;
+			$$->u.unop.operand = $2;
+		}
+	| '!' cast_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = LOGNOT_OP;
+			$$->u.unop.operand = $2;
+		}
+	| PLUSPLUS unary_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = PREINC_OP;
+			$$->u.unop.operand = $2;
+		}
+	| MINUSMINUS unary_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = PREDEC_OP;
+			$$->u.unop.operand = $2;
+		}
 	| SIZEOF unary_expression {}
 	| SIZEOF '(' type_name ')' {}
 	;
 
-unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
-	;
-
 cast_expression
-	: unary_expression {}
-	| '(' type_name ')' cast_expression {}
+	: unary_expression {$$ = $1;}
+	| '(' type_name ')' cast_expression {yyerror("We only do ints. sorry.");}
 	;
 
 multiplicative_expression
 	: cast_expression 
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	| multiplicative_expression '*' cast_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = MULT_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| multiplicative_expression '/' cast_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = DIV_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| multiplicative_expression '%' cast_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = MULT_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 additive_expression
@@ -201,35 +258,18 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression {}
-	| unary_expression '=' assignment_expression { $$ = $3; setSymbolValue(currentTable, currentSym, (long long) $3); printf( "exprval=%lld\n", $$); }
-	| unary_expression PLUSEQ assignment_expression {$$ = $1 + $3;$1 = $$; }
-	| unary_expression MINUSEQ assignment_expression { $$ = $1 - $3;$1 = $$;}
-	| unary_expression TIMESEQ assignment_expression { $$ = $1 * $3;$1 = $$; }
-	| unary_expression DIVEQ assignment_expression { $$ = $1 / $3;$1 = $$; }
-	| unary_expression MODEQ assignment_expression { $$ = $1 % $3;$1 = $$; }
-	| unary_expression SHLEQ assignment_expression { $$ = $1 << $3;$1 = $$; }
-	| unary_expression SHREQ assignment_expression { $$ = $1 >> $3;$1 = $$; }
-	| unary_expression ANDEQ assignment_expression { $$ = $1 & $3;$1 = $$; }
-	| unary_expression OREQ assignment_expression { $$ = $1 | $3;$1 = $$; }
-	| unary_expression XOREQ assignment_expression { $$ = $1 ^ $3;$1 = $$; }
-	/*| unary_expression assignment_operator assignment_expression {doAssign($1,$2,$3);}*/
+	| unary_expression '=' assignment_expression {}
+	| unary_expression PLUSEQ assignment_expression {}
+	| unary_expression MINUSEQ assignment_expression {}
+	| unary_expression TIMESEQ assignment_expression {}
+	| unary_expression DIVEQ assignment_expression {}
+	| unary_expression MODEQ assignment_expression {}
+	| unary_expression SHLEQ assignment_expression {}
+	| unary_expression SHREQ assignment_expression {}
+	| unary_expression ANDEQ assignment_expression {}
+	| unary_expression OREQ assignment_expression {}
+	| unary_expression XOREQ assignment_expression {}
 	;
-
-/*
-assignment_operator
-	: '=' {$$ = '=';}
-	| PLUSEQ {$$ = PLUSEQ;}
-	| MINUSEQ {$$ = MINUSEQ;}
-	| TIMESEQ {$$ = TIMESEQ;}
-	| DIVEQ {$$ = DIVEQ;}
-	| MODEQ {$$ = MODEQ;}
-	| SHLEQ {$$ = SHLEQ;}
-	| SHREQ {$$ = SHREQ;}
-	| ANDEQ {$$ = ANDEQ;}
-	| OREQ {$$ = OREQ;}
-	| XOREQ {$$ = XOREQ;}
-	;
-*/
 
 expression
 	: assignment_expression
@@ -718,10 +758,10 @@ external_declaration
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement
-	| declaration_specifiers declarator compound_statement
-	| declarator declaration_list compound_statement
-	| declarator compound_statement
+	: declaration_specifiers declarator declaration_list compound_statement {printf("func1\n");}
+	| declaration_specifiers declarator compound_statement {printf("func2\n");}
+	| declarator declaration_list compound_statement {printf("func3\n");}
+	| declarator compound_statement {printf("func4\n");}
 	;
 
 %%

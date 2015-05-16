@@ -52,16 +52,20 @@ char* getTableFile(symbolTable* table) {
 	return table->filename;
 }
 
-int searchSymbol(symbolTable* table, char* ident) {
+symbolTable* searchSymbol(symbolTable* table, char* ident) {
 	symbolTable* curTable = table;
 	do {
 		if(containsSymbol(curTable, ident)) {
-			return curTable->scope;
-		} else if (table->scope != GLOBAL_SCOPE) {
+			return curTable;
+		} else if (curTable->scope != GLOBAL_SCOPE) {
 			curTable = curTable->parent;
 		}
 	} while(curTable->scope != GLOBAL_SCOPE);
-	return -1;
+	if(containsSymbol(curTable, ident)) {
+		return curTable;
+	} else {
+		return NULL;
+	}
 }
 
 node* getNode(symbolTable* table, char* ident) {

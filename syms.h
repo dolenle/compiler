@@ -38,7 +38,7 @@ int installSymbol(symbolTable* table, char* ident);
 int containsSymbol(symbolTable* table, char* ident); //return 1 if found, 0 if not
 
 //search through all parent scopes, return scope type else -1
-int searchSymbol(symbolTable* table, char* ident);
+symbolTable* searchSymbol(symbolTable* table, char* ident);
 
 node* getNode(symbolTable* table, char* ident);
 

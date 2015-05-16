@@ -32,11 +32,47 @@ typedef enum storageType {
 } storageType;
 
 typedef enum namespaceType {
-		DEFAULT_SPACE,  //enum constants, typedef names, vars and funcs
-        LABEL_SPACE,
-        TAG_SPACE,		//struct, enum, union tags
-        STRUCT_SPACE	//struct and union
+	DEFAULT_SPACE,  //enum constants, typedef names, vars and funcs
+	LABEL_SPACE,
+	TAG_SPACE,		//struct, enum, union tags
+	STRUCT_SPACE	//struct and union
 } namespaceType;
+
+typedef enum binopType {
+	MULT_OP,
+	DIV_OP,
+	MOD_OP,
+	PLUS_OP,
+	MINUS_OP,
+	SHL_OP,
+	SHR_OP,
+	LT_OP,
+	GT_OP,
+	LTEQ_OP,
+	GTEQ_OP,
+	EQEQ_OP,
+	NOTEQ_OP,
+	AND_OP,
+	XOR_OP,
+	IOR_OP,
+	LOGOR_OP,
+	LOGAND_OP
+} binopType;
+
+typedef enum unopType {
+	PREINC_OP,
+	POSTINC_OP,
+	PREDEC_OP,
+	POSTDEC_OP,
+	ADDR_OP,
+	DEREF_OP,
+	POS_OP,
+	NEG_OP,
+	NOT_OP,
+	LOGNOT_OP,
+	SIZEOF_OP
+} unopType;
+
 
 typedef struct node node; //some forward declaration
 
@@ -45,4 +81,5 @@ struct ast {
 	node* botNode;
 	int errorFlag;
 };
+
 #endif
