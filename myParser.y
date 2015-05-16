@@ -16,6 +16,7 @@ void yyerror(const char* s);
 
 void doScopeThing();
 node* doIdentThing(char* id);
+void traverseAST(node* start, int tabs);
 
 void initAST(struct ast *a);
 struct ast prependNode(struct ast a, node* t);
@@ -68,7 +69,7 @@ multiplicative_expression shift_expression relational_expression equality_expres
 logical_or_expression logical_and_expression additive_expression assignment_expression
 unary_expression postfix_expression expression and_expression exclusive_or_expression
 inclusive_or_expression declaration_or_statement conditional_expression
-expression_statement statement
+expression_statement statement selection_statement
 
 %type <ast> init_declarator init_declarator_list declarator direct_declarator pointer
 declaration_specifiers declaration_or_statement_list declaration compound_statement
@@ -129,10 +130,10 @@ postfix_expression
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
 	| postfix_expression '.' IDENT {
-			yyerror("Unimplemented Struct/Union Selectior");
+			yyerror("Unimplemented Struct/Union Selector");
 		}
 	| postfix_expression INDSEL IDENT {
-			yyerror("Unimplemented Struct/Union Indirect Selectior");
+			yyerror("Unimplemented Struct/Union Indirect Selector");
 		}
 	| postfix_expression PLUSPLUS {
 			$$ = ast_newNode(UNOP_NODE);
@@ -207,148 +208,148 @@ cast_expression
 multiplicative_expression
 	: cast_expression 
 	| multiplicative_expression '*' cast_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = MULT_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = MULT_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| multiplicative_expression '/' cast_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = DIV_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = DIV_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| multiplicative_expression '%' cast_expression {
 			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = MULT_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$->u.binop.type = MULT_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = PLUS_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = PLUS_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| additive_expression '-' multiplicative_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = MINUS_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = MINUS_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 shift_expression
 	: additive_expression
 	| shift_expression SHL additive_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = SHL_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = SHL_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| shift_expression SHR additive_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = SHR_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = SHR_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 relational_expression
 	: shift_expression
 	| relational_expression '<' shift_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = LT_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = LT_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| relational_expression '>' shift_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = GT_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = GT_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| relational_expression LTEQ shift_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = LTEQ_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = LTEQ_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| relational_expression GTEQ shift_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = GTEQ_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = GTEQ_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 equality_expression
 	: relational_expression
 	| equality_expression EQEQ relational_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = EQEQ_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = EQEQ_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	| equality_expression NOTEQ relational_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = NOTEQ_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = NOTEQ_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 and_expression
 	: equality_expression
 	| and_expression '&' equality_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = AND_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = AND_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 exclusive_or_expression
 	: and_expression
 	| exclusive_or_expression '^' and_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = XOR_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = XOR_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = IOR_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = IOR_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 logical_and_expression
-	: inclusive_or_expression {}
+	: inclusive_or_expression
 	| logical_and_expression LOGAND inclusive_or_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = LOGAND_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = LOGAND_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
 logical_or_expression
 	: logical_and_expression
 	| logical_or_expression LOGOR logical_and_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			n->u.binop.type = LOGOR_OP;
-			n->u.binop.lvalue = $1;
-			n->u.binop.rvalue = $3;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = LOGOR_OP;
+			$$->u.binop.lvalue = $1;
+			$$->u.binop.rvalue = $3;
 		}
 	;
 
@@ -502,7 +503,7 @@ declaration
 							if(print_decl) printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
 							//copy the type node to the declaration list
 							node* cpy = ast_newNode(SCALAR_NODE);
-							$$ = appendNode($$, (node*) memcpy((void*) cpy,(void*) ds, sizeof(&ds)));
+							$$ = appendNode($$, (node*) memcpy((void*) cpy,(void*) ds, sizeof(node)));
 						} else {
 							if(print_decl) printf("Expected type specifier, got %i\n", ds->type);
 						}
@@ -899,6 +900,19 @@ compound_statement
 		} declaration_or_statement_list '}' {
 			currentTable = leaveScope(currentTable, 0);
 			$$ = $3;
+			printf("\n$$ PRINTOUT\n");
+			
+			node* tmp = $$.topNode;
+			while(tmp!= $$.botNode) {
+				printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+				if(tmp->type == LIST_NODE) {
+					node* n = tmp->u.list.start;
+					traverseAST(n, 1);
+				}
+				tmp = tmp->next;
+			}
+			printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+			traverseAST(tmp->u.list.start, 1);
 		}
 	;
 
@@ -927,9 +941,18 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
+	: IF '(' expression ')' statement {
+			$$ = ast_newNode(IF_NODE);
+			$$->u.if_stmt.condition = $3;
+			$$->u.if_stmt.if_block = $5;
+		}
+	| IF '(' expression ')' statement ELSE statement {
+			$$ = ast_newNode(IFELSE_NODE);
+			$$->u.ifelse_stmt.condition = $3;
+			$$->u.ifelse_stmt.if_block = $5;
+			$$->u.ifelse_stmt.else_block = $7;
+		}
+	| SWITCH '(' expression ')' statement {yyerror("Unimplemented switch statement");}
 	;
 
 iteration_statement
@@ -1029,6 +1052,58 @@ void doScopeThing() {
 	} else {
 		currentTable = enterScope(BLOCK_SCOPE, line, filename, currentTable);
 	}
+}
+
+void traverseAST(node* n, int tabs) {
+	int i;
+	for(i=0; i<tabs; i++) printf("\t");
+	printf("Node Type %i (%s)\n", n->type, nodeText[n->type]);
+	if(n->type == BINOP_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Binary Type %i\n", n->u.binop.type);
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Binary Left\n");
+		traverseAST(n->u.binop.lvalue, tabs+1);
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Binary Right\n");
+		traverseAST(n->u.binop.rvalue, tabs+1);
+	} else if(n->type == UNOP_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Unary Type %i\n", n->u.unop.type);
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Unary Operand\n");
+		traverseAST(n->u.unop.operand, tabs+1);
+	} else if(n->type == ASSIGN_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Assign Type %i\n", n->u.assign.type);
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Assign Left\n");
+		traverseAST(n->u.assign.left, tabs+1);
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Assign Right\n");
+		traverseAST(n->u.assign.right, tabs+1);
+	} else if(n->type == NUMBER_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Number value %lli\n", n->u.number.value);
+	} else if(n->type == IDENT_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Identifier %s\n", n->u.ident.id);
+		traverseAST(n->next, tabs+1);
+	} else if(n->type == SCALAR_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Scalar type %s\n", scalarText[n->u.scalar.type]);
+	} else if(n->type == IF_NODE) {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("If Statement Condition\n");
+		traverseAST(n->u.if_stmt.condition, tabs+1);
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("If Statement Body\n");
+		traverseAST(n->u.if_stmt.if_block, tabs+1);
+	} else {
+		for(i=0; i<tabs; i++) printf("\t");
+		printf("Something else?\n");
+	}
+	return;
 }
 
 void yyerror(const char* s) {

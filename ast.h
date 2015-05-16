@@ -20,6 +20,7 @@ typedef enum nodeType {
 	UNOP_NODE,
 	ASSIGN_NODE,
 	IF_NODE,
+	IFELSE_NODE,
 	FOR_NODE,
 	WHILE_NODE,
 	LIST_NODE
@@ -80,6 +81,17 @@ typedef struct node_assign {
 	assignType type;
 } node_assign;
 
+typedef struct node_if {
+	node* condition;
+	node* if_block;
+} node_if;
+
+typedef struct node_ifelse {
+	node* condition;
+	node* if_block;
+	node* else_block;
+} node_ifelse;
+
 typedef struct node_list {
 	node* start;
 } node_list;
@@ -98,6 +110,8 @@ struct node {
 		node_binop binop;
 		node_unop unop;
 		node_assign assign;
+		node_if if_stmt;
+		node_ifelse ifelse_stmt;
 		node_list list;
 	} u;
 };

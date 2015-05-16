@@ -14,6 +14,7 @@ char* nodeText[] = {
 	"UNOP",
 	"ASSIGN",
 	"IF",
+	"IF-ELSE",
 	"FOR",
 	"WHILE",
 	"LIST"
