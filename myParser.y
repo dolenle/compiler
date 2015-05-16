@@ -61,15 +61,15 @@ CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT FOR GOTO IF IN
 INT LONG REGISTER RESTRICT RETURN SHORT SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF
 TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
-%left ELSE
 %left IF
+%left ELSE
 
 %type <astNode> type_specifier storage_class_specifier primary_expression cast_expression
 multiplicative_expression shift_expression relational_expression equality_expression
 logical_or_expression logical_and_expression additive_expression assignment_expression
 unary_expression postfix_expression expression and_expression exclusive_or_expression
 inclusive_or_expression declaration_or_statement conditional_expression
-expression_statement statement selection_statement
+expression_statement statement selection_statement iteration_statement
 
 %type <ast> init_declarator init_declarator_list declarator direct_declarator pointer
 declaration_specifiers declaration_or_statement_list declaration compound_statement
@@ -445,6 +445,7 @@ declaration
 		}
 	| declaration_specifiers init_declarator_list ';' {
 			if(!$1.errorFlag && !$2.errorFlag) {
+				//Chokes on "int * const i"
 				if(print_decl) printf("\nparsing AST....\n\n");
 				node* dc = $2.topNode; //declarator
 				initAST(&$$);
@@ -833,7 +834,7 @@ parameter_declaration
 	;
 
 identifier_list
-	: IDENT {printf("%s\n", "identifier list");}
+	: IDENT
 	| identifier_list ',' IDENT
 	;
 
@@ -874,10 +875,10 @@ initializer_list
 statement
 	: labeled_statement {yyerror("Unimplemented Labels");}
 	| compound_statement {$$ = $1.topNode;}
-	| expression_statement {/*do/for/while*/}
-	| selection_statement {/*switch and if stmt*/}
-	| iteration_statement {/*do/for/while*/}
-	| jump_statement {/*goto, return and break*/}
+	| expression_statement /*do/for/while*/
+	| selection_statement /*switch and if stmt*/
+	| iteration_statement /*do/for/while*/
+	| jump_statement /*goto, return and break*/
 	;
 
 labeled_statement
@@ -941,7 +942,7 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement {
+	: IF '(' expression ')' statement %prec IF {
 			$$ = ast_newNode(IF_NODE);
 			$$->u.if_stmt.condition = $3;
 			$$->u.if_stmt.if_block = $5;
@@ -952,18 +953,34 @@ selection_statement
 			$$->u.ifelse_stmt.if_block = $5;
 			$$->u.ifelse_stmt.else_block = $7;
 		}
-	| SWITCH '(' expression ')' statement {yyerror("Unimplemented switch statement");}
+	| SWITCH '(' expression ')'  statement {yyerror("Unimplemented switch statement");}
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
-	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
+	: WHILE '(' expression ')' statement {
+			$$ = ast_newNode(WHILE_NODE);
+			$$->u.while_stmt.condition = $3;
+			$$->u.while_stmt.body = $5;
+			$$->u.while_stmt.do_stmt = 0;
+		}
+	| DO statement WHILE '(' expression ')' ';' {
+			$$ = ast_newNode(WHILE_NODE);
+			$$->u.while_stmt.body = $2;
+			$$->u.while_stmt.condition = $5;
+			$$->u.while_stmt.do_stmt = 1;
+		}
+	| FOR '(' expression_statement expression_statement ')' statement {}
+	| FOR '(' expression_statement expression_statement expression ')' statement {
+			$$ = ast_newNode(FOR_NODE);
+			$$->u.for_stmt.init = $3;
+			$$->u.for_stmt.condition = $4;
+			$$->u.for_stmt.afterthought = $5;
+			$$->u.for_stmt.body = $7;
+		}
 	;
 
 jump_statement
-	: GOTO IDENT ';'
+	: GOTO IDENT ';' {yyerror("Labels are unimplemented, and so are GOTOs");}
 	| CONTINUE ';'
 	| BREAK ';'
 	| RETURN ';'

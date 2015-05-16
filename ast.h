@@ -92,6 +92,19 @@ typedef struct node_ifelse {
 	node* else_block;
 } node_ifelse;
 
+typedef struct node_for {
+	node* init;
+	node* condition;
+	node* afterthought;
+	node* body;
+} node_for;
+
+typedef struct node_while {
+	node* condition;
+	node* body;
+	char do_stmt;
+} node_while;
+
 typedef struct node_list {
 	node* start;
 } node_list;
@@ -112,6 +125,8 @@ struct node {
 		node_assign assign;
 		node_if if_stmt;
 		node_ifelse ifelse_stmt;
+		node_for for_stmt;
+		node_while while_stmt;
 		node_list list;
 	} u;
 };
