@@ -10,6 +10,8 @@
 
 #define YYDEBUG 1
 int yydebug = 0;
+int print_decl = 0;
+
 void yyerror(const char* s);
 
 void doScopeThing();
@@ -61,14 +63,15 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 %left ELSE
 %left IF
 
-%type <num.intBuff> initializer
-shift_expression relational_expression equality_expression logical_or_expression
-logical_and_expression additive_expression assignment_expression expression
-
 %type <astNode> type_specifier storage_class_specifier primary_expression cast_expression
-multiplicative_expression unary_expression postfix_expression
+multiplicative_expression shift_expression relational_expression equality_expression
+logical_or_expression logical_and_expression additive_expression assignment_expression
+unary_expression postfix_expression expression and_expression exclusive_or_expression
+inclusive_or_expression declaration_or_statement conditional_expression
+expression_statement statement
+
 %type <ast> init_declarator init_declarator_list declarator direct_declarator pointer
-declaration_specifiers
+declaration_specifiers declaration_or_statement_list declaration compound_statement
 
 %start translation_unit;
 
@@ -85,6 +88,7 @@ primary_expression
 				symbolTable* parent = searchSymbol(currentTable, $1);
 				if(parent) {
 					printf("Symbol found in outer scope\n");
+					$$ = getNode(parent, $1);
 				} else {
 					yyerror("Symbol not found");
 				}
@@ -97,6 +101,7 @@ primary_expression
 				//$$ = yylval.num.intBuff;
 				$$->u.number.value = $1.intBuff;
 			} else {
+				yyerror("Real types not supported. Casting to int");
 				$$->u.number.value = (long long)$1.realBuff;
 			}
 			$$->u.number.typeFlag = $1.typeFlag;
@@ -111,13 +116,34 @@ postfix_expression
 			//$$ = appendNode($$, $1);
 			$$=$1;
 		}
-	| postfix_expression '[' expression ']'
+	| postfix_expression '[' expression ']' {
+		//CONVERT TO *(E1+E2)
+		$$ = ast_newNode(UNOP_NODE);
+		$$->u.unop.type = DEREF_OP;
+		node *n = ast_newNode(BINOP_NODE);
+		$$->u.unop.operand = n;
+		n->u.binop.type = PLUS_OP;
+		n->u.binop.lvalue = $1;
+		n->u.binop.rvalue = $3;
+	}
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENT
-	| postfix_expression INDSEL IDENT
-	| postfix_expression PLUSPLUS
-	| postfix_expression MINUSMINUS
+	| postfix_expression '.' IDENT {
+			yyerror("Unimplemented Struct/Union Selectior");
+		}
+	| postfix_expression INDSEL IDENT {
+			yyerror("Unimplemented Struct/Union Indirect Selectior");
+		}
+	| postfix_expression PLUSPLUS {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = POSTINC_OP;
+			$$->u.unop.operand = $1;
+		}
+	| postfix_expression MINUSMINUS {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = POSTDEC_OP;
+			$$->u.unop.operand = $1;
+		}
 	;
 
 argument_expression_list
@@ -201,74 +227,206 @@ multiplicative_expression
 	;
 
 additive_expression
-	: multiplicative_expression {}
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
+	: multiplicative_expression
+	| additive_expression '+' multiplicative_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = PLUS_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| additive_expression '-' multiplicative_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = MINUS_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 shift_expression
 	: additive_expression
-	| shift_expression SHL additive_expression
-	| shift_expression SHR additive_expression
+	| shift_expression SHL additive_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = SHL_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| shift_expression SHR additive_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = SHR_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 relational_expression
 	: shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
-	| relational_expression LTEQ shift_expression
-	| relational_expression GTEQ shift_expression
+	| relational_expression '<' shift_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = LT_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| relational_expression '>' shift_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = GT_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| relational_expression LTEQ shift_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = LTEQ_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| relational_expression GTEQ shift_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = GTEQ_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 equality_expression
 	: relational_expression
-	| equality_expression EQEQ relational_expression
-	| equality_expression NOTEQ relational_expression
+	| equality_expression EQEQ relational_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = EQEQ_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
+	| equality_expression NOTEQ relational_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = NOTEQ_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 and_expression
 	: equality_expression
-	| and_expression '&' equality_expression
+	| and_expression '&' equality_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = AND_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 exclusive_or_expression
 	: and_expression
-	| exclusive_or_expression '^' and_expression
+	| exclusive_or_expression '^' and_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = XOR_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
+	| inclusive_or_expression '|' exclusive_or_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = IOR_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 logical_and_expression
 	: inclusive_or_expression {}
-	| logical_and_expression LOGAND inclusive_or_expression
+	| logical_and_expression LOGAND inclusive_or_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = LOGAND_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 logical_or_expression
 	: logical_and_expression
-	| logical_or_expression LOGOR logical_and_expression
+	| logical_or_expression LOGOR logical_and_expression {
+			node* n = ast_newNode(BINOP_NODE);
+			n->u.binop.type = LOGOR_OP;
+			n->u.binop.lvalue = $1;
+			n->u.binop.rvalue = $3;
+		}
 	;
 
 conditional_expression
 	: logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
+	| logical_or_expression '?' expression ':' conditional_expression {
+			yyerror("Unimplemented ternary operator");
+		}
 	;
 
 assignment_expression
-	: conditional_expression {}
-	| unary_expression '=' assignment_expression {}
-	| unary_expression PLUSEQ assignment_expression {}
-	| unary_expression MINUSEQ assignment_expression {}
-	| unary_expression TIMESEQ assignment_expression {}
-	| unary_expression DIVEQ assignment_expression {}
-	| unary_expression MODEQ assignment_expression {}
-	| unary_expression SHLEQ assignment_expression {}
-	| unary_expression SHREQ assignment_expression {}
-	| unary_expression ANDEQ assignment_expression {}
-	| unary_expression OREQ assignment_expression {}
-	| unary_expression XOREQ assignment_expression {}
+	: conditional_expression
+	| unary_expression '=' assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = EQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression PLUSEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = PLUSEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression MINUSEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = MINUSEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression TIMESEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = TIMESEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression DIVEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = DIVEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression MODEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = MODEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression SHLEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = SHLEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression SHREQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = SHREQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression ANDEQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = ANDEQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression OREQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = OREQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
+	| unary_expression XOREQ assignment_expression {
+			$$ = ast_newNode(ASSIGN_NODE);
+			$$->u.assign.type = XOREQ_OP;
+			$$->u.assign.left = $1;
+			$$->u.assign.right = $3;
+		}
 	;
 
 expression
@@ -286,16 +444,17 @@ declaration
 		}
 	| declaration_specifiers init_declarator_list ';' {
 			if(!$1.errorFlag && !$2.errorFlag) {
-				printf("\nparsing AST....\n\n");
+				if(print_decl) printf("\nparsing AST....\n\n");
 				node* dc = $2.topNode; //declarator
-
+				initAST(&$$);
+				node* nextID = NULL;
 				do {
 					node* ds = $1.topNode; //specifier
 					
 					if(dc->type == IDENT_NODE) {
 						if(ds->type == STORAGE_NODE) { //set storage class
 							if(currentTable->scope == GLOBAL_SCOPE &&
-								(ds->u.storage.type != SG_STATIC || ds->u.storage.type != SG_EXTERN)) {
+								ds->u.storage.type != SG_STATIC && ds->u.storage.type != SG_EXTERN) {
 								yyerror("Invalid file-scope declaration, defaulting to STATIC");
 								dc->u.ident.stor = SG_STATIC;
 							} else {
@@ -309,44 +468,74 @@ declaration
 						} else {
 							dc->u.ident.stor = SG_AUTO;
 						}
-						printf("identifier \"%s\" declared on line %i, storage class %s\n",
+						if(print_decl) printf("identifier \"%s\" declared on line %i, storage class %s\n",
 						dc->u.ident.id, dc->u.ident.line, storageText[dc->u.ident.stor]);
-
+						
+						$$ = appendNode($$, dc);
+						//printf("APPENDING IDENT...%s\n", dc->u.ident.id);
+					} else {
+						yyerror("Expected Identifier");
 					}
+
 					while(dc != $2.botNode) {
 						if(dc->next->type == ARRAY_NODE) {
 							dc = dc->next;
-							printf("array of length %i containing \n", dc->u.array.length);
+							$$ = appendNode($$, dc);
+							if(print_decl) printf("array of length %i containing \n", dc->u.array.length);
 						} else if(dc->next->type == POINTER_NODE) {
-							printf("pointer to\n");
+							if(print_decl) printf("pointer to\n");
 							dc = dc->next;
+							$$ = appendNode($$, dc);
 						} else if(dc->next->type == FUNCTION_NODE) {
-							printf("function returning\n");
+							if(print_decl) printf("function returning\n");
 							dc = dc->next;
+							$$ = appendNode($$, dc);
+						} else if(dc->next->type == IDENT_NODE) {
+							nextID = dc->next; //preserve the next one
+							break;
+						} else {
+							break;
 						}
 					}
-
 					do {
-						if(ds->type == SCALAR_NODE)
-							printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
-						else
-							printf("unexpected nodeType %i\n", ds->type);
+						if(ds->type == SCALAR_NODE) {
+							if(print_decl) printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
+							//copy the type node to the declaration list
+							node* cpy = ast_newNode(SCALAR_NODE);
+							$$ = appendNode($$, (node*) memcpy((void*) cpy,(void*) ds, sizeof(&ds)));
+						} else {
+							if(print_decl) printf("Expected type specifier, got %i\n", ds->type);
+						}
 						if(ds != $1.botNode)
 							ds = ds->next;
 					} while(ds != $1.botNode);
 					
-					printf("\n");
-					if(dc != $2.botNode)
-						dc = dc->next;
-					else
+					if(print_decl) printf("\n");
+					if(dc != $2.botNode && nextID != NULL) {
+						dc = nextID; 
+					} else {
 						break;
+					}
 				} while(1);
+				
+				if(print_decl) {
+					printf("\n$$ PRINTOUT\n");
+					node* tmp = $$.topNode;
+					while(tmp!= $$.botNode) {
+						printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+						if(tmp->type == IDENT_NODE)
+							printf("id = %s\n", tmp->u.ident.id);
+						tmp = tmp->next;
+					}
+					printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+				}
 			}
 		}
 	;
 
 declaration_specifiers
 	: storage_class_specifier {
+			initAST(&$$);
 			$$ = prependNode($$, $1);
 			$$.errorFlag = 0;
 		}
@@ -359,9 +548,10 @@ declaration_specifiers
 			}
 		}
 	| type_specifier	{
-							$$ = appendNode($$, $1);
-							$$.errorFlag = 0;
-						}
+			initAST(&$$);
+			$$ = appendNode($$, $1);
+			$$.errorFlag = 0;
+		}
 	| type_specifier declaration_specifiers {
 			node* ts = $2.botNode; //get current type specifier from bottom
 			switch($1->u.scalar.type) {
@@ -576,7 +766,7 @@ declarator
 direct_declarator
 	: IDENT {
 			node* n = doIdentThing($1);
-			//initAST(&$$);
+			initAST(&$$);
 			if(n) {
 				$$ = prependNode($$, n);
 			} else {
@@ -670,7 +860,7 @@ direct_abstract_declarator
 	;
 
 initializer
-	: assignment_expression
+	: assignment_expression {/*NOT IMPLEMENTED*/}
 	| '{' initializer_list '}' {}
 	| '{' initializer_list ',' '}' {}
 	;
@@ -681,12 +871,12 @@ initializer_list
 	;
 
 statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
+	: labeled_statement {yyerror("Unimplemented Labels");}
+	| compound_statement {$$ = $1.topNode;}
+	| expression_statement {/*do/for/while*/}
+	| selection_statement {/*switch and if stmt*/}
+	| iteration_statement {/*do/for/while*/}
+	| jump_statement {/*goto, return and break*/}
 	;
 
 labeled_statement
@@ -708,22 +898,32 @@ compound_statement
 			doScopeThing();
 		} declaration_or_statement_list '}' {
 			currentTable = leaveScope(currentTable, 0);
+			$$ = $3;
 		}
 	;
 
 declaration_or_statement_list
-	: declaration_or_statement
-	| declaration_or_statement_list declaration_or_statement
+	: declaration_or_statement {
+			node* n = ast_newNode(LIST_NODE);
+			n->u.list.start = $1;
+			initAST(&$$);
+			$$ = appendNode($$, n);
+		}
+	| declaration_or_statement_list declaration_or_statement {
+			node* n = ast_newNode(LIST_NODE);
+			n->u.list.start = $2;
+			$$ = appendNode($1, n);
+		}
 	;
 
 declaration_or_statement
-	: declaration
+	: declaration {$$ = $1.topNode;}
 	| statement
 	;
 
 expression_statement
-	: ';'
-	| expression ';'
+	: ';' {}
+	| expression ';' {$$ = $1;};
 	;
 
 selection_statement

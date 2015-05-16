@@ -8,7 +8,15 @@ char* nodeText[] = {
 	"STORAGE",
 	"POINTER",
 	"ARRAY",
-	"FUNCTION"
+	"FUNCTION",
+	"NUMBER",
+	"BINOP",
+	"UNOP",
+	"ASSIGN",
+	"IF",
+	"FOR",
+	"WHILE",
+	"LIST"
 };
 
 char* scalarText[] = {

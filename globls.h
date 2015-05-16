@@ -73,6 +73,19 @@ typedef enum unopType {
 	SIZEOF_OP
 } unopType;
 
+typedef enum assignType {
+	EQ_OP,
+	TIMESEQ_OP,
+	DIVEQ_OP,
+	MODEQ_OP,
+	PLUSEQ_OP,
+	MINUSEQ_OP,
+	SHLEQ_OP,
+	SHREQ_OP,
+	ANDEQ_OP,
+	OREQ_OP,
+	XOREQ_OP
+} assignType;
 
 typedef struct node node; //some forward declaration
 
