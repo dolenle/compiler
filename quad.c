@@ -124,6 +124,8 @@ void stmt_list_parse(node* list) {
 				gen_rvalue(n, NULL);
 			} else if(n->type == IF_NODE || n->type == IFELSE_NODE) {
 				gen_if(n);
+			} else if(n->type == FOR_NODE) {
+				gen_for(n);
 			}
 			if(list->next) {
 				list = list->next;
@@ -131,7 +133,7 @@ void stmt_list_parse(node* list) {
 				break;
 			}
 		} else {
-			printf("QUAD ERROR: Invalid Statement List");
+			printf("QUAD ERROR: Invalid Statement List\n");
 			break;
 		}
 	}
@@ -150,7 +152,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				emit(O_LEA, dest, q, NULL);
 				return dest;
 			} else {
-				printf("RVAL Unimplemented IDENT");
+				printf("RVAL Unimplemented IDENT\n");
 			}
 			break;
 		}
@@ -201,7 +203,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				}
 
 				default:
-					printf("RVAL Unimplemented UNOP");
+					printf("RVAL Unimplemented UNOP\n");
 			}
 			break;
 		}
@@ -226,7 +228,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				qnode* one = qnode_new(Q_CONSTANT);
 				one->name = strdup("1");
 				one->u.value = 1;
-				
+
 				gen_cond(node, trueBlock, falseBlock); //evaluate expression
 				currentBlock = bt; //true
 				emit(O_MOV, target, one, NULL);
@@ -322,19 +324,18 @@ void gen_if(node* start) {
 	block* bn;
 	qnode* trueBlock = blockToQnode(bt);
 	qnode* falseBlock = blockToQnode(bf);
-	qnode* nextBlock = qnode_new(Q_LABEL);
+	qnode* nextBlock;
 	if(start->type == IF_NODE) {
-		gen_cond(start->u.if_stmt.condition, trueBlock, falseBlock);
 		bn = bf;
+		gen_cond(start->u.if_stmt.condition, trueBlock, falseBlock);
 	} else if(start->type == IFELSE_NODE) {
-		gen_cond(start->u.ifelse_stmt.condition, trueBlock, falseBlock);
 		bn = bb_newBlock(functionCount, ++blockCount, bf);
+		gen_cond(start->u.ifelse_stmt.condition, trueBlock, falseBlock);
 	} else {
 		printf("QUAD ERROR: Not an If/else node\n");
 		return;
 	}
-	nextBlock->name = strdup(bn->name);
-	nextBlock->u.block = bn;
+	nextBlock = blockToQnode(bn);
 	currentBlock = bt; //begin true block
 	stmt_list_parse(start->u.if_stmt.if_block); //same for both if and ifelse
 	emit(O_BR, NULL, nextBlock, NULL); //unconditional jump
@@ -345,6 +346,36 @@ void gen_if(node* start) {
 		emit(O_BR, NULL, nextBlock, NULL);
 	}
 	currentBlock = bn;
+}
+
+void gen_for(node* start) {
+	if(start->type == FOR_NODE) {
+		block* init = bb_newBlock(functionCount, ++blockCount, currentBlock);
+		block* body = bb_newBlock(functionCount, ++blockCount, init);
+		block* after = bb_newBlock(functionCount, ++blockCount, body); 
+		block* next = bb_newBlock(functionCount, ++blockCount, after);
+
+		qnode* b = blockToQnode(body);
+		qnode* a = blockToQnode(after);
+		qnode* n = blockToQnode(next);
+
+		currentBlock = init;
+		stmt_list_parse(start->u.for_stmt.init);
+		gen_cond(start->u.for_stmt.condition, b, n);
+
+		currentBlock = body;
+		stmt_list_parse(start->u.for_stmt.body);
+		emit(O_BR, NULL, a, NULL);
+
+		currentBlock = after;
+		if(start->u.for_stmt.afterthought)
+			stmt_list_parse(start->u.for_stmt.afterthought);
+		gen_cond(start->u.for_stmt.condition, b, n);
+
+		currentBlock = next;
+	} else {
+		printf("QUAD ERROR: Not a for loop\n");
+	}
 }
 
 void gen_cond(node* expr, qnode* t, qnode* f) {
@@ -417,7 +448,24 @@ void print_blocks(block* b) {
 		printf("\n%s\n", b->name);
 		quad* q = b->top;
 		while(q) {
-			printf("%s = %s %s, %s\n", q->dest?q->dest->name:"NULL", opcodeText[q->op], q->source1?q->source1->name:"NULL", q->source2?q->source2->name:"NULL");
+			printf("\t");
+			if(q->dest) {
+				printf("%s =\t", q->dest->name);
+			} else {
+				printf("\t");
+			}
+			printf("%s\t", opcodeText[q->op]);
+			if(q->source1) {
+				printf("%s\t", q->source1->name);
+			} else {
+				printf("\t");
+			}
+			if(q->source2) {
+				printf("%s\n", q->source2->name);
+			} else {
+				printf("\n");
+			}
+			//printf("%s = %s %s, %s\n", q->dest?q->dest->name:"NULL", opcodeText[q->op], q->source1?q->source1->name:"NULL", q->source2?q->source2->name:"NULL");
 			if(q->next && q != b->bottom) {
 				q = q->next;
 			} else {

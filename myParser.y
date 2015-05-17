@@ -116,7 +116,7 @@ postfix_expression
 		}
 	| postfix_expression '[' expression ']' {
 		if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
-			
+
 		} else {
 			//CONVERT TO *(E1+E2)
 			$$ = ast_newNode(UNOP_NODE);
@@ -984,13 +984,31 @@ selection_statement
 	: IF '(' expression ')' statement %prec IF {
 			$$ = ast_newNode(IF_NODE);
 			$$->u.if_stmt.condition = $3;
-			$$->u.if_stmt.if_block = $5;
+			if($5->type == LIST_NODE) {
+				$$->u.if_stmt.if_block = $5;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $5;
+				$$->u.if_stmt.if_block = n;
+			}
 		}
 	| IF '(' expression ')' statement ELSE statement {
 			$$ = ast_newNode(IFELSE_NODE);
 			$$->u.ifelse_stmt.condition = $3;
-			$$->u.ifelse_stmt.if_block = $5;
-			$$->u.ifelse_stmt.else_block = $7;
+			if($5->type == LIST_NODE) {
+				$$->u.ifelse_stmt.if_block = $5;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $5;
+				$$->u.ifelse_stmt.if_block = n;
+			}
+			if($7->type == LIST_NODE) {
+				$$->u.ifelse_stmt.else_block = $7;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $7;
+				$$->u.ifelse_stmt.else_block = n;
+			}
 		}
 	| SWITCH '(' expression ')'  statement {yyerror("Unimplemented switch statement");}
 	;
@@ -1008,13 +1026,49 @@ iteration_statement
 			$$->u.while_stmt.condition = $5;
 			$$->u.while_stmt.do_stmt = 1;
 		}
-	| FOR '(' expression_statement expression_statement ')' statement {}
+	| FOR '(' expression_statement expression_statement ')' statement {
+			$$ = ast_newNode(FOR_NODE);
+			if($3->type == LIST_NODE) {
+				$$->u.for_stmt.init = $3;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $3;
+				$$->u.for_stmt.init = n;
+			}
+			$$->u.for_stmt.condition = $4;
+			$$->u.for_stmt.afterthought = NULL;
+			if($6->type == LIST_NODE) {
+				$$->u.for_stmt.body = $6;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $6;
+				$$->u.for_stmt.body = n;
+			}
+		}
 	| FOR '(' expression_statement expression_statement expression ')' statement {
 			$$ = ast_newNode(FOR_NODE);
-			$$->u.for_stmt.init = $3;
+			if($3->type == LIST_NODE) {
+				$$->u.for_stmt.init = $3;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $3;
+				$$->u.for_stmt.init = n;
+			}
 			$$->u.for_stmt.condition = $4;
-			$$->u.for_stmt.afterthought = $5;
-			$$->u.for_stmt.body = $7;
+			if($5->type == LIST_NODE) {
+				$$->u.for_stmt.afterthought = $5;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $5;
+				$$->u.for_stmt.afterthought = n;
+			}
+			if($7->type == LIST_NODE) {
+				$$->u.for_stmt.body = $7;
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $7;
+				$$->u.for_stmt.body = n;
+			}
 		}
 	;
 

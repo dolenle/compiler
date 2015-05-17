@@ -99,6 +99,7 @@ opcode assignToBinop(assignType assign);
 qnode* blockToQnode(block* b);
 qnode* new_temp();
 void gen_if(node* start);
+void gen_for(node* start);
 void gen_cond(node* expr, qnode* t, qnode* f);
 void stmt_list_parse(node* list);
 void function_block(node* body);
