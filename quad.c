@@ -55,6 +55,8 @@ block* bb_newBlock(int funcID, int id, block* prev) {
 	b->blockID = id;
 	b->top = NULL;
 	b->bottom = NULL;
+	b->branch1 = NULL;
+	b->branch2 = NULL;
 	b->name = malloc(10);
 	sprintf(b->name, ".BB.%i.%i", b->funcID, b->blockID);
 	return b;
@@ -98,21 +100,30 @@ quad* emit(opcode op, qnode* dest, qnode* src1, qnode* src2) {
 
 	bb_appendQuad(currentBlock, q);
 
-	printf("%s = %s %s, %s\n", dest?dest->name:"NULL", opcodeText[op], src1?src1->name:"NULL", src2?src2->name:"NULL");
 	return q;
 }
 
-void function_block(node* list) {
+void function_block(node* body) {
 	blockCount = 1;
 	currentBlock = bb_newBlock(functionCount++, blockCount, currentBlock);
+	block* tmp = currentBlock;
+	stmt_list_parse(body);
+	print_blocks(tmp);
+}
+
+void stmt_list_parse(node* list) {
 	while(list) {
 		if(list && list->type == LIST_NODE) {
 			node* n = list->u.list.start;
 			if(n->type == ASSIGN_NODE) {
-				printf("generating assignment quad...\n");
+				//printf("generating assignment quad...\n");
 				gen_assign(n);
 			} else if(n->type == BINOP_NODE) {
 				gen_rvalue(n, NULL);
+			} else if(n->type == UNOP_NODE) {
+				gen_rvalue(n, NULL);
+			} else if(n->type == IF_NODE || n->type == IFELSE_NODE) {
+				gen_if(n);
 			}
 			if(list->next) {
 				list = list->next;
@@ -120,7 +131,7 @@ void function_block(node* list) {
 				break;
 			}
 		} else {
-			printf("ERROR: Invalid Function Body");
+			printf("QUAD ERROR: Invalid Statement List");
 			break;
 		}
 	}
@@ -157,43 +168,103 @@ qnode* gen_rvalue(node* node, qnode* target) {
 			break;
 		}
 		case UNOP_NODE: {
-			if(node->u.unop.type == DEREF_OP) {
-				qnode* addr = gen_rvalue(node->u.unop.operand, NULL);
-				if(!target) {
-					target = new_temp();
+			switch(node->u.unop.type) {
+				case DEREF_OP: {
+					qnode* addr = gen_rvalue(node->u.unop.operand, NULL);
+					if(!target) target = new_temp();
+					emit(O_LOAD, target, addr, NULL);
+					return target;
 				}
-				emit(O_LOAD, target, addr, NULL);
-				return target;
-			} else {
-				printf("RVAL Unimplemented UNOP");
+				case POSTINC_OP: {
+					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					if(!target) target = new_temp();
+					emit(O_MOV, target, q, NULL);
+					emit(O_INC, NULL, q, NULL);
+					return target;
+				}
+				case POSTDEC_OP: {
+					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					if(!target) target = new_temp();
+					emit(O_MOV, target, q, NULL);
+					emit(O_DEC, NULL, q, NULL);
+					return target;
+				}
+				case PREINC_OP: {
+					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					emit(O_INC, NULL, q, NULL);
+					return q;
+				}
+				case PREDEC_OP: {
+					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					emit(O_DEC, NULL, q, NULL);
+					return q;
+				}
+
+				default:
+					printf("RVAL Unimplemented UNOP");
 			}
 			break;
 		}
 		case BINOP_NODE: {
-			qnode* left = gen_rvalue(node->u.binop.left, NULL);
-			qnode* right = gen_rvalue(node->u.binop.right, NULL);
-			if(node->u.binop.left->type == IDENT_NODE && node->u.binop.left->next->type == ARRAY_NODE) {
-				qnode* temp = new_temp();
-				qnode* size = qnode_new(Q_CONSTANT);
-				int nextType = node->u.binop.left->next->next->type;
-				if(nextType == SCALAR_NODE) {
-					sprintf(size->name, "%li", sizeof(long long int));
-					size->u.value = (long long) sizeof(long long int);
-				} else if(nextType == POINTER_NODE || nextType == ARRAY_NODE) {
-					sprintf(size->name, "%li", sizeof(long long int*));
-					size->u.value = (long long) sizeof(long long int*);
-				} else {
-					printf("Error, unimplemented sizeof\n");
+			//boolean expression
+			if((node->u.binop.type >= LT_OP && node->u.binop.type <= NOTEQ_OP) || node->u.binop.type >= LOGOR_OP) {
+				if(!target) target = new_temp();
+				block* temp = currentBlock;
+				block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock);
+				block* bf = bb_newBlock(functionCount, ++blockCount, bt);
+				block* bn = bb_newBlock(functionCount, ++blockCount, bf);
+				
+				//create qnodes for the above blocks
+				qnode* trueBlock = qnode_new(Q_LABEL);
+				trueBlock->name = bt->name;
+				trueBlock->u.block = bt;
+				qnode* falseBlock = qnode_new(Q_LABEL);
+				falseBlock->name = bf->name;
+				falseBlock->u.block = bf;
+				qnode* nextBlock = qnode_new(Q_LABEL);
+				nextBlock->name = bn->name;
+				nextBlock->u.block = bn;
+
+				gen_cond(node, trueBlock, falseBlock); //evaluate expression
+				
+				currentBlock = bt; //true
+				qnode* one = qnode_new(Q_CONSTANT);
+				one->name = strdup("1");
+				one->u.value = 1;
+				emit(O_MOV, target, one, NULL);
+				emit(O_BR, NULL, nextBlock, NULL);
+				
+				currentBlock = bf; //false
+				qnode* zero = qnode_new(Q_CONSTANT);
+				zero->name = strdup("0");
+				zero->u.value = 0;
+				emit(O_MOV, target, zero, NULL);
+				emit(O_BR, NULL, nextBlock, NULL);
+				
+				currentBlock = bn;
+			} else {
+				qnode* left = gen_rvalue(node->u.binop.left, NULL);
+				qnode* right = gen_rvalue(node->u.binop.right, NULL);
+				if(node->u.binop.left->type == IDENT_NODE && node->u.binop.left->next->type == ARRAY_NODE) {
+					qnode* temp = new_temp();
+					qnode* size = qnode_new(Q_CONSTANT);
+					int nextType = node->u.binop.left->next->next->type;
+					if(nextType == SCALAR_NODE) {
+						sprintf(size->name, "%li", sizeof(long long int));
+						size->u.value = (long long) sizeof(long long int);
+					} else if(nextType == POINTER_NODE || nextType == ARRAY_NODE) {
+						sprintf(size->name, "%li", sizeof(int*));
+						size->u.value = (long long) sizeof(int*);
+					} else {
+						printf("QUAD ERROR, unimplemented sizeof\n");
+					}
+					emit(O_MUL, temp, right, size);
+					right = temp;
 				}
-				emit(O_MUL, temp, right, size);
-				right = temp;
-			}
-				if(!target) {
-					target = new_temp();
-				}
+				if(!target) target = new_temp();
 				emit(getBinop(node->u.binop.type), target, left, right);
 				return target;
-			
+			}
 		}
 	}
 	return NULL;
@@ -226,20 +297,121 @@ qnode* gen_lvalue(node* node, int* flag) {
 	}
 }
 
-qnode* gen_assign(node* node) {
-	if(node->type == ASSIGN_NODE) {
+qnode* gen_assign(node* a) {
+	if(a->type == ASSIGN_NODE) {
+		node* right = a->u.assign.right;
+		if(a->u.assign.type != EQ_OP) { //conver assignment
+			node* b = ast_newNode(BINOP_NODE);
+			b->u.binop.type = assignToBinop(a->u.assign.type);
+			b->u.binop.left = a->u.assign.left;
+			b->u.binop.right = right;
+			right = b;
+		}
 		int flag;
-		qnode* dest = gen_lvalue(node->u.assign.left, &flag);
+		qnode* dest = gen_lvalue(a->u.assign.left, &flag);
 		if(flag == 0) { //direct
-			printf("direct assign\n");
-			return gen_rvalue(node->u.assign.right, dest);
+			return gen_rvalue(right, dest);
 		} else if(flag == 1) { //indirect
-			qnode* right = gen_rvalue(node->u.assign.right, NULL);
-			emit(O_STOR, NULL, right, dest);
+			qnode* rval = gen_rvalue(right, NULL);
+			emit(O_STOR, NULL, rval, dest);
 			return dest;
 		}
 	} else {
-		printf("ERROR: Expected assignment node\n");
+		printf("QUAD ERROR: Expected assignment node\n");
+	}
+}
+
+void gen_if(node* start) {
+	block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock);
+	block* bf = bb_newBlock(functionCount, ++blockCount, bt);
+	block* bn;
+	qnode* trueBlock = qnode_new(Q_LABEL);
+	trueBlock->name = strdup(bt->name);
+	trueBlock->u.block = bt;
+	qnode* falseBlock = qnode_new(Q_LABEL);
+	falseBlock->name = strdup(bf->name);
+	falseBlock->u.block = bf;
+	qnode* nextBlock = qnode_new(Q_LABEL);
+	if(start->type == IF_NODE) {
+		bn = bf;
+		gen_cond(start->u.if_stmt.condition, trueBlock, falseBlock);
+	} else if(start->type == IFELSE_NODE) {
+		bn = bb_newBlock(functionCount, ++blockCount, bf);
+		gen_cond(start->u.ifelse_stmt.condition, trueBlock, falseBlock);
+	} else {
+		printf("QUAD ERROR: Not an If/else node\n");
+		return;
+	}
+	nextBlock->name = strdup(bn->name);
+	nextBlock->u.block = bn;
+	currentBlock = bt; //begin true block
+	stmt_list_parse(start->u.if_stmt.if_block); //same for both if and ifelse
+	emit(O_BR, NULL, nextBlock, NULL); //unconditional jump
+
+	if(start->type == IFELSE_NODE) {
+		currentBlock = bf; //false (else) block
+		stmt_list_parse(start->u.ifelse_stmt.else_block);
+		emit(O_BR, NULL, nextBlock, NULL);
+	}
+	currentBlock = bn;
+}
+
+void gen_cond(node* expr, qnode* t, qnode* f) {
+	if(expr->type == BINOP_NODE) {
+		switch(expr->u.binop.type) {
+			case LT_OP:
+				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
+				emit(O_BRLT, NULL, t, f);
+				break;
+			case GT_OP:
+				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
+				emit(O_BRGT, NULL, t, f);
+				break;
+			case LTEQ_OP:
+				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
+				emit(O_BRLE, NULL, t, f);
+				break;
+			case GTEQ_OP:
+				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
+				emit(O_BRGE, NULL, t, f);
+				break;
+			case EQEQ_OP:
+				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
+				emit(O_BREQ, NULL, t, f);
+				break;
+			case NOTEQ_OP:
+				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
+				emit(O_BRNE, NULL, t, f);
+				break;
+			default: {
+				qnode* val = gen_rvalue(expr, NULL);
+				qnode* zero = qnode_new(Q_CONSTANT);
+				zero->name = strdup("0");
+				zero->u.value = 0;
+				emit(O_CMP, NULL, val, zero);
+				emit(O_BRNE, NULL, t, f);
+			}
+		}
+	}
+}
+
+void print_blocks(block* b) {
+	while(b) {
+		printf("\n%s\n", b->name);
+		quad* q = b->top;
+		while(q) {
+			printf("%s = %s %s, %s\n", q->dest?q->dest->name:"NULL", opcodeText[q->op], q->source1?q->source1->name:"NULL", q->source2?q->source2->name:"NULL");
+			if(q->next && q != b->bottom) {
+				q = q->next;
+			} else {
+				break;
+			}
+		}
+		if(b->next) {
+			b = b->next;
+		} else {
+			break;
+		}
 	}
 }
 
@@ -276,6 +448,31 @@ opcode getBinop(binopType binop) {
 			return O_LOGOR;
 		case LOGAND_OP:
 			return O_LOGAND;
+	}
+}
+
+opcode assignToBinop(assignType assign) {
+	switch(assign) {
+		case TIMESEQ_OP:
+			return MULT_OP;
+		case DIVEQ_OP:
+			return DIV_OP;
+		case MODEQ_OP:
+			return MOD_OP;
+		case PLUSEQ_OP:
+			return PLUS_OP;
+		case MINUSEQ_OP:
+			return MINUS_OP;
+		case SHLEQ_OP:
+			return SHL_OP;
+		case SHREQ_OP:
+			return SHR_OP;
+		case ANDEQ_OP:
+			return AND_OP;
+		case OREQ_OP:
+			return IOR_OP;
+		case XOREQ_OP:
+			return O_XOR;
 	}
 }
 

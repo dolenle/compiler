@@ -115,22 +115,18 @@ postfix_expression
 			$$=$1;
 		}
 	| postfix_expression '[' expression ']' {
-		//CONVERT TO *(E1+E2)
-		$$ = ast_newNode(UNOP_NODE);
-		$$->u.unop.type = DEREF_OP;
-		node *n = ast_newNode(BINOP_NODE);
-		$$->u.unop.operand = n;
-		n->u.binop.type = PLUS_OP;
-		// if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
-		// 	n->u.binop.left = $1;
-		// } else if($1->type == IDENT_NODE && $1->next->type == ARRAY_NODE) {
-		// 	node* cpy = ast_newNode(IDENT_NODE);
-		// 	n->u.binop.left = (node*) memcpy((void*) cpy,(void*) $1, sizeof(node));
-		// 	cpy->next = ast_newNode(POINTER_NODE);
-		// 	cpy->next->next = $1->next->next;
-		// }
-		n->u.binop.left = $1;
-		n->u.binop.right = $3;
+		if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
+			
+		} else {
+			//CONVERT TO *(E1+E2)
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = DEREF_OP;
+			node *n = ast_newNode(BINOP_NODE);
+			$$->u.unop.operand = n;
+			n->u.binop.type = PLUS_OP;
+			n->u.binop.left = $1;
+			n->u.binop.right = $3;
+		}
 	}
 	| postfix_expression '(' ')' {
 			//Function call without arguments

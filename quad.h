@@ -52,7 +52,8 @@ typedef enum opcode {
 typedef enum qnodeType {
 	Q_IDENT,
 	Q_TEMPORARY,
-	Q_CONSTANT
+	Q_CONSTANT,
+	Q_LABEL
 } qnodeType;
 
 typedef struct qnode {
@@ -60,6 +61,7 @@ typedef struct qnode {
 	char* name;
 	union {
 		node* ast;
+		block* block;
 		int tempID;
 		long int value;
 	} u;
@@ -78,6 +80,8 @@ struct block {
 	quad* bottom;
 	block* prev;
 	block* next;
+	block* branch1;
+	block* branch2;
 	int funcID;
 	int blockID;
 	char* name;
@@ -91,7 +95,14 @@ qnode* gen_rvalue(node* node, qnode* target);
 qnode* gen_lvalue(node* node, int* flag);
 qnode* gen_assign(node* node);
 opcode getBinop(binopType binop);
+opcode assignToBinop(assignType assign);
 qnode* new_temp();
+void gen_if(node* start);
+void gen_cond(node* expr, qnode* t, qnode* f);
+void stmt_list_parse(node* list);
+void function_block(node* body);
+
+void print_blocks(block* start);
 
 
 #endif
