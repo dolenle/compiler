@@ -10,19 +10,13 @@
 
 #define YYDEBUG 1
 int yydebug = 0;
-int print_decl = 0;
+int print_decl = 0; //1 to print declaration ast
 
 void yyerror(const char* s);
 
 void doScopeThing();
 node* doIdentThing(char* id);
 void traverseAST(node* start, int tabs);
-
-void initAST(struct ast *a);
-struct ast prependNode(struct ast a, node* t);
-struct ast appendNode(struct ast a, node* t);
-struct ast prependAST(struct ast a, struct ast b);
-struct ast appendAST(struct ast a, struct ast b);
 
 extern int yylex();
 extern int line;
@@ -68,11 +62,12 @@ TYPEDEF_NAME UNION UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 multiplicative_expression shift_expression relational_expression equality_expression
 logical_or_expression logical_and_expression additive_expression assignment_expression
 unary_expression postfix_expression expression and_expression exclusive_or_expression
-inclusive_or_expression declaration_or_statement conditional_expression
-expression_statement statement selection_statement iteration_statement
+inclusive_or_expression declaration_or_statement conditional_expression statement
+expression_statement selection_statement iteration_statement jump_statement
 
 %type <ast> init_declarator init_declarator_list declarator direct_declarator pointer
 declaration_specifiers declaration_or_statement_list declaration compound_statement
+argument_expression_list
 
 %start translation_unit;
 
@@ -88,16 +83,16 @@ primary_expression
 			} else {
 				symbolTable* parent = searchSymbol(currentTable, $1);
 				if(parent) {
-					printf("Symbol found in outer scope\n");
+					//printf("Symbol found in outer scope\n");
 					$$ = getNode(parent, $1);
 				} else {
 					yyerror("Symbol not found");
+					$$ = NULL;
 				}
 			}
 		}
 	| NUMBER {
 			$$ = ast_newNode(NUMBER_NODE);
-			printf("Number Node\n");
 			if ($1.typeFlag == INT_T || $1.typeFlag == LONG_T || $1.typeFlag == LONGLONG_T) {
 				//$$ = yylval.num.intBuff;
 				$$->u.number.value = $1.intBuff;
@@ -109,7 +104,7 @@ primary_expression
 			$$->u.number.signFlag = $1.signFlag;
 		}
 	| STRING {yyerror("Strings not supported.");}
-	| '(' expression ')' {}
+	| '(' expression ')' {$$ = $2;}
 	;
 	
 postfix_expression
@@ -127,8 +122,16 @@ postfix_expression
 		n->u.binop.lvalue = $1;
 		n->u.binop.rvalue = $3;
 	}
-	| postfix_expression '(' ')'
-	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression '(' ')' {
+			//Function call without arguments
+			$$ = ast_newNode(CALL_NODE);
+			$$->u.call.function = $1;
+		}
+	| postfix_expression '(' argument_expression_list ')' {
+			$$ = ast_newNode(CALL_NODE);
+			$$->u.call.function = $1;
+			$$->u.call.args = $3.topNode;
+		}
 	| postfix_expression '.' IDENT {
 			yyerror("Unimplemented Struct/Union Selector");
 		}
@@ -148,8 +151,17 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression
-	| argument_expression_list ',' assignment_expression
+	: assignment_expression {
+			node* n = ast_newNode(LIST_NODE);
+			n->u.list.start = $1;
+			initAST(&$$);
+			$$ = appendNode($$, n);
+		}
+	| argument_expression_list ',' assignment_expression {
+			node* n = ast_newNode(LIST_NODE);
+			n->u.list.start = $3;
+			$$ = appendNode($1, n);
+		}
 	;
 
 unary_expression
@@ -196,8 +208,16 @@ unary_expression
 			$$->u.unop.type = PREDEC_OP;
 			$$->u.unop.operand = $2;
 		}
-	| SIZEOF unary_expression {}
-	| SIZEOF '(' type_name ')' {}
+	| SIZEOF unary_expression {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = SIZEOF_OP;
+			$$->u.unop.operand = $2;
+		}
+	| SIZEOF '(' type_specifier ')' {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = SIZEOF_OP;
+			$$->u.unop.operand = $3;
+		}
 	;
 
 cast_expression
@@ -519,18 +539,8 @@ declaration
 						break;
 					}
 				} while(1);
-				
-				if(print_decl) {
-					printf("\n$$ PRINTOUT\n");
-					node* tmp = $$.topNode;
-					while(tmp!= $$.botNode) {
-						printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-						if(tmp->type == IDENT_NODE)
-							printf("id = %s\n", tmp->u.ident.id);
-						tmp = tmp->next;
-					}
-					printf("Declarator Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-				}
+			} else {
+				$$.errorFlag = 1;
 			}
 		}
 	;
@@ -612,22 +622,36 @@ declaration_specifiers
 			$$.botNode = ts;
 			//printf("newType=%i",$$.botNode->u.scalar.type);
 		}
-	| type_qualifier {yyerror("Unimplemented Type Qualifier");}
-	| type_qualifier declaration_specifiers {yyerror("Unimplemented Type Qualifier");}
+	| type_qualifier {yyerror("Unimplemented Type Qualifier"); $$.errorFlag = 1;}
+	| type_qualifier declaration_specifiers {yyerror("Unimplemented Type Qualifier"); $$.errorFlag = 1;}
 	;
 
 init_declarator_list
-	: init_declarator {$$ = $1;}
+	: init_declarator {
+			if($1.errorFlag != 1) {
+				$$ = $1;
+			} else {
+				$$.errorFlag = 1;
+			}
+		}
 	| init_declarator_list ',' init_declarator {
-			if(!$3.errorFlag) {
+			if($3.errorFlag != 1) {
 				$$ = appendAST($1, $3);
+			} else {
+				$$.errorFlag = 1;
 			}
 		}
 	;
 
 init_declarator
 	: declarator {$$ = $1;}
-	| declarator '=' initializer {yyerror("Unimplemented initialized declarator");}
+	| declarator '=' initializer {
+			yyerror("Unimplemented initialized declarator");
+			$$.errorFlag = 1;
+			if($1.topNode->type == IDENT_NODE) {
+				removeSymbol(currentTable, $1.topNode->u.ident.id);
+			}
+		}
 	;
 
 storage_class_specifier
@@ -901,38 +925,47 @@ compound_statement
 		} declaration_or_statement_list '}' {
 			currentTable = leaveScope(currentTable, 0);
 			$$ = $3;
-			printf("\n$$ PRINTOUT\n");
 			
-			node* tmp = $$.topNode;
-			while(tmp!= $$.botNode) {
-				printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-				if(tmp->type == LIST_NODE) {
-					node* n = tmp->u.list.start;
-					traverseAST(n, 1);
-				}
-				tmp = tmp->next;
-			}
-			printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-			traverseAST(tmp->u.list.start, 1);
+			// node* tmp = $$.topNode;
+			// while(tmp!= $$.botNode) {
+			// 	printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+			// 	if(tmp->type == LIST_NODE) {
+			// 		node* n = tmp->u.list.start;
+			// 		traverseAST(n, 1);
+			// 	}
+			// 	tmp = tmp->next;
+			// }
+			// printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+			// traverseAST(tmp->u.list.start, 1);
 		}
 	;
 
 declaration_or_statement_list
 	: declaration_or_statement {
-			node* n = ast_newNode(LIST_NODE);
-			n->u.list.start = $1;
-			initAST(&$$);
-			$$ = appendNode($$, n);
+			if($1 != NULL) {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $1;
+				initAST(&$$);
+				$$ = appendNode($$, n);
+			}
 		}
 	| declaration_or_statement_list declaration_or_statement {
-			node* n = ast_newNode(LIST_NODE);
-			n->u.list.start = $2;
-			$$ = appendNode($1, n);
+			if($2 != NULL) {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $2;
+				$$ = appendNode($1, n);
+			}
 		}
 	;
 
 declaration_or_statement
-	: declaration {$$ = $1.topNode;}
+	: declaration {
+			if(!$1.errorFlag) {
+				$$ = $1.topNode;
+			} else {
+				$$ = NULL;
+			}
+		}
 	| statement
 	;
 
@@ -981,10 +1014,23 @@ iteration_statement
 
 jump_statement
 	: GOTO IDENT ';' {yyerror("Labels are unimplemented, and so are GOTOs");}
-	| CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+	| CONTINUE ';' {
+			$$ = ast_newNode(JUMP_NODE);
+			$$->u.jump.type = CONTINUE_JP;
+		}
+	| BREAK ';' {
+			$$ = ast_newNode(JUMP_NODE);
+			$$->u.jump.type = BREAK_JP;
+		}
+	| RETURN ';' {
+			$$ = ast_newNode(JUMP_NODE);
+			$$->u.jump.type = RETURN_JP;
+		}
+	| RETURN expression ';' {
+			$$ = ast_newNode(JUMP_NODE);
+			$$->u.jump.type = RETURN_JP;
+			$$->u.jump.target = $2;
+		}
 	;
 
 translation_unit
@@ -994,56 +1040,39 @@ translation_unit
 
 external_declaration
 	: function_definition {printf("Left function!\n");}
-	| declaration
+	| declaration {if(print_decl) traverseAST($1.topNode, 0);}
 	;
 
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {printf("func1\n");}
-	| declaration_specifiers declarator compound_statement {printf("func2\n");}
+	| declaration_specifiers declarator compound_statement {
+			if($2.botNode->type == FUNCTION_NODE && $2.topNode->type == IDENT_NODE) {
+				if($1.botNode->type == SCALAR_NODE) {
+					$2.botNode->next = $1.botNode; //set return type
+					$2.botNode->u.function.body = $3.topNode;
+					printf("\nFunction Definition\n");
+					traverseAST($3.topNode, 0);
+				}
+			} else {
+				printf("Expected function declarator!\n");
+			}
+		}
 	| declarator declaration_list compound_statement {printf("func3\n");}
-	| declarator compound_statement {printf("func4\n");}
+	| declarator compound_statement {
+			if($1.botNode->type == FUNCTION_NODE && $1.topNode->type == IDENT_NODE) {
+				node* t = ast_newNode(SCALAR_NODE);
+				t->u.scalar.type = S_INT; //default return type;
+				$1.botNode->next = t; //set return type
+				$1.botNode->u.function.body = $2.topNode;
+				printf("\nFunction \"%s\" Definition\n", $1.topNode->u.ident.id);
+				traverseAST($2.topNode, 0);
+			} else {
+				printf("Expected function declarator!\n");
+			}
+		}
 	;
 
 %%
-void initAST(struct ast *a) {
-	a->topNode = NULL;
-	a->botNode = NULL;
-	a->errorFlag = 0;
-}
-
-struct ast prependNode(struct ast a, node* t) {
-	node* currentTop = a.topNode;
-	t->next = currentTop;
-	a.topNode = t;
-	if(!a.botNode) {
-		a.botNode = t;
-	}
-	return a;
-}
-
-struct ast appendNode(struct ast a, node* t) {
-	if(a.botNode) {
-		node* currentBot = a.botNode;
-		currentBot->next = t;
-	}
-	a.botNode = t;
-	if(!a.topNode) {
-		a.topNode = t;
-	}
-	return a;
-}
-
-struct ast prependAST(struct ast a, struct ast b) {
-	a = prependNode(a, b.botNode);
-	a.topNode = b.topNode;
-	return a;
-}
-
-struct ast appendAST(struct ast a, struct ast b) {
-	a = appendNode(a, b.topNode);
-	a.botNode = b.botNode;
-	return a;
-}
 
 node* doIdentThing(char* id) { //identifier declared
 	node* n = ast_newNode(IDENT_NODE);
@@ -1071,54 +1100,85 @@ void doScopeThing() {
 	}
 }
 
-void traverseAST(node* n, int tabs) {
+void traverseAST(node* n, int tabs) { //Recursively print AST
 	int i;
-	for(i=0; i<tabs; i++) printf("\t");
-	printf("Node Type %i (%s)\n", n->type, nodeText[n->type]);
-	if(n->type == BINOP_NODE) {
+	if(n != NULL) {
 		for(i=0; i<tabs; i++) printf("\t");
-		printf("Binary Type %i\n", n->u.binop.type);
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Binary Left\n");
-		traverseAST(n->u.binop.lvalue, tabs+1);
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Binary Right\n");
-		traverseAST(n->u.binop.rvalue, tabs+1);
-	} else if(n->type == UNOP_NODE) {
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Unary Type %i\n", n->u.unop.type);
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Unary Operand\n");
-		traverseAST(n->u.unop.operand, tabs+1);
-	} else if(n->type == ASSIGN_NODE) {
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Assign Type %i\n", n->u.assign.type);
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Assign Left\n");
-		traverseAST(n->u.assign.left, tabs+1);
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Assign Right\n");
-		traverseAST(n->u.assign.right, tabs+1);
-	} else if(n->type == NUMBER_NODE) {
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Number value %lli\n", n->u.number.value);
-	} else if(n->type == IDENT_NODE) {
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Identifier %s\n", n->u.ident.id);
-		traverseAST(n->next, tabs+1);
-	} else if(n->type == SCALAR_NODE) {
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("Scalar type %s\n", scalarText[n->u.scalar.type]);
-	} else if(n->type == IF_NODE) {
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("If Statement Condition\n");
-		traverseAST(n->u.if_stmt.condition, tabs+1);
-		for(i=0; i<tabs; i++) printf("\t");
-		printf("If Statement Body\n");
-		traverseAST(n->u.if_stmt.if_block, tabs+1);
+		printf("Node Type %i (%s)\n", n->type, nodeText[n->type]);
+		if(n->type == BINOP_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Binary Type %i (%s)\n", n->u.binop.type, binopText[n->u.binop.type]);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Binary Left Operand\n");
+			traverseAST(n->u.binop.lvalue, tabs+1);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Binary Right Operand\n");
+			traverseAST(n->u.binop.rvalue, tabs+1);
+		} else if(n->type == UNOP_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Unary Type %i (%s)\n", n->u.unop.type, unopText[n->u.unop.type]);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Unary Operand\n");
+			traverseAST(n->u.unop.operand, tabs+1);
+		} else if(n->type == ASSIGN_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Assign Type %i (%s)\n", n->u.assign.type, assignText[n->u.assign.type]);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Assign Left\n");
+			traverseAST(n->u.assign.left, tabs+1);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Assign Right\n");
+			traverseAST(n->u.assign.right, tabs+1);
+		} else if(n->type == NUMBER_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Number value %lli\n", n->u.number.value);
+		} else if(n->type == IDENT_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Identifier \"%s\"\n", n->u.ident.id);
+			traverseAST(n->next, tabs+1);
+		} else if(n->type == SCALAR_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Scalar type %s\n", scalarText[n->u.scalar.type]);
+		} else if(n->type == POINTER_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Pointer to\n");
+			traverseAST(n->next, tabs+1);
+		} else if(n->type == ARRAY_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Array of length %i containing \n", n->u.array.length);
+			traverseAST(n->next, tabs+1);
+		} else if(n->type == IF_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("If Statement Condition\n");
+			traverseAST(n->u.if_stmt.condition, tabs+1);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("If Statement Body\n");
+			traverseAST(n->u.if_stmt.if_block, tabs+1);
+		} else if(n->type == FOR_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("For Loop Initializer\n");
+			traverseAST(n->u.for_stmt.init, tabs+1);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("For Loop Condition\n");
+			traverseAST(n->u.for_stmt.condition, tabs+1);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("For Loop Afterthought\n");
+			traverseAST(n->u.for_stmt.afterthought, tabs+1);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("For Loop Body\n");
+			traverseAST(n->u.for_stmt.body, tabs+1);
+		} else if(n->type == LIST_NODE) {
+			traverseAST(n->u.list.start, tabs+1);
+			if(n->next && n->next->type == LIST_NODE) {
+				traverseAST(n->next, tabs);
+			}
+		} else {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Something else?\n");
+		}
 	} else {
 		for(i=0; i<tabs; i++) printf("\t");
-		printf("Something else?\n");
+		printf("WARNING: NULL NODE PTR\n");
 	}
 	return;
 }

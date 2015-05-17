@@ -2,7 +2,7 @@
 #include "syms.h"
 
 symbolTable* enterScope(scopeType scope, int line, char* filename, symbolTable* parent) {
-	printf("enterScope=%i\n", scope);
+	//printf("enterScope=%i\n", scope);
 	struct symbolTable *table;
 	if(!(table = malloc(sizeof(symbolTable)))) {
 		fprintf(stderr, "Error: could not allocate memory for symbol table.\n");
@@ -20,7 +20,7 @@ symbolTable* enterScope(scopeType scope, int line, char* filename, symbolTable* 
 }
 
 symbolTable* leaveScope(symbolTable* table, int free) {
-	printf("leaveScope=%i\n", table->scope);
+	//printf("leaveScope=%i\n", table->scope);
 	if(free) {
 		destroy_hashTable(table->mainTable);
 		destroy_hashTable(table->tagTable);
@@ -34,13 +34,17 @@ int installSymbol(symbolTable* table, char* ident) {
 	return ht_addSymbol(table->mainTable, ident);
 }
 
+int removeSymbol(symbolTable* table, char* ident) {
+	return tableRemove(table->mainTable, ident);
+}
+
 //returns -1 if ident could not be found
 int setSymbolValue(symbolTable* table, char* ident, long long val) {
 	return ht_setValue(table->mainTable, ident, val);
 }
 
 long long getSymbolValue(symbolTable* table, char* ident) {
-	printf("getSymbolValue of %s\n", ident);
+	//printf("getSymbolValue of %s\n", ident);
 	return ht_getValue(table->mainTable, ident);
 }
 

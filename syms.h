@@ -35,6 +35,8 @@ symbolTable* leaveScope(symbolTable* table, int free);
 
 int installSymbol(symbolTable* table, char* ident);
 
+int removeSymbol(symbolTable* table, char* ident); //return 1 if deleted, 0 if not
+
 int containsSymbol(symbolTable* table, char* ident); //return 1 if found, 0 if not
 
 //search through all parent scopes, return scope type else -1

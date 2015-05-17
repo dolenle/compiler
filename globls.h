@@ -87,6 +87,13 @@ typedef enum assignType {
 	XOREQ_OP
 } assignType;
 
+typedef enum jumpType {
+	GOTO_JP,
+	CONTINUE_JP,
+	BREAK_JP,
+	RETURN_JP
+} jumpType;
+
 typedef struct node node; //some forward declaration
 
 struct ast {
