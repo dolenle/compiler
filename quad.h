@@ -96,6 +96,7 @@ qnode* gen_lvalue(node* node, int* flag);
 qnode* gen_assign(node* node);
 opcode getBinop(binopType binop);
 opcode assignToBinop(assignType assign);
+qnode* blockToQnode(block* b);
 qnode* new_temp();
 void gen_if(node* start);
 void gen_cond(node* expr, qnode* t, qnode* f);

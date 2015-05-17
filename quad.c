@@ -1,6 +1,6 @@
 #include "quad.h"
 
-int functionCount = 1;
+int functionCount = 0;
 int blockCount = 1;
 int tempCount = 1;
 block* currentBlock = NULL;
@@ -105,7 +105,7 @@ quad* emit(opcode op, qnode* dest, qnode* src1, qnode* src2) {
 
 void function_block(node* body) {
 	blockCount = 1;
-	currentBlock = bb_newBlock(functionCount++, blockCount, currentBlock);
+	currentBlock = bb_newBlock(++functionCount, blockCount, currentBlock);
 	block* tmp = currentBlock;
 	stmt_list_parse(body);
 	print_blocks(tmp);
@@ -215,33 +215,28 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				block* bn = bb_newBlock(functionCount, ++blockCount, bf);
 				
 				//create qnodes for the above blocks
-				qnode* trueBlock = qnode_new(Q_LABEL);
-				trueBlock->name = bt->name;
-				trueBlock->u.block = bt;
-				qnode* falseBlock = qnode_new(Q_LABEL);
-				falseBlock->name = bf->name;
-				falseBlock->u.block = bf;
-				qnode* nextBlock = qnode_new(Q_LABEL);
-				nextBlock->name = bn->name;
-				nextBlock->u.block = bn;
+				qnode* trueBlock = blockToQnode(bt);
+				qnode* falseBlock = blockToQnode(bf);
+				qnode* nextBlock = blockToQnode(bn);
 
-				gen_cond(node, trueBlock, falseBlock); //evaluate expression
-				
-				currentBlock = bt; //true
-				qnode* one = qnode_new(Q_CONSTANT);
-				one->name = strdup("1");
-				one->u.value = 1;
-				emit(O_MOV, target, one, NULL);
-				emit(O_BR, NULL, nextBlock, NULL);
-				
-				currentBlock = bf; //false
+				//qnodes for zero and one
 				qnode* zero = qnode_new(Q_CONSTANT);
 				zero->name = strdup("0");
 				zero->u.value = 0;
+				qnode* one = qnode_new(Q_CONSTANT);
+				one->name = strdup("1");
+				one->u.value = 1;
+				
+				gen_cond(node, trueBlock, falseBlock); //evaluate expression
+				currentBlock = bt; //true
+				emit(O_MOV, target, one, NULL);
+				emit(O_BR, NULL, nextBlock, NULL);
+				currentBlock = bf; //false
 				emit(O_MOV, target, zero, NULL);
 				emit(O_BR, NULL, nextBlock, NULL);
 				
 				currentBlock = bn;
+				return target;
 			} else {
 				qnode* left = gen_rvalue(node->u.binop.left, NULL);
 				qnode* right = gen_rvalue(node->u.binop.right, NULL);
@@ -325,19 +320,15 @@ void gen_if(node* start) {
 	block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock);
 	block* bf = bb_newBlock(functionCount, ++blockCount, bt);
 	block* bn;
-	qnode* trueBlock = qnode_new(Q_LABEL);
-	trueBlock->name = strdup(bt->name);
-	trueBlock->u.block = bt;
-	qnode* falseBlock = qnode_new(Q_LABEL);
-	falseBlock->name = strdup(bf->name);
-	falseBlock->u.block = bf;
+	qnode* trueBlock = blockToQnode(bt);
+	qnode* falseBlock = blockToQnode(bf);
 	qnode* nextBlock = qnode_new(Q_LABEL);
 	if(start->type == IF_NODE) {
-		bn = bf;
 		gen_cond(start->u.if_stmt.condition, trueBlock, falseBlock);
+		bn = bf;
 	} else if(start->type == IFELSE_NODE) {
-		bn = bb_newBlock(functionCount, ++blockCount, bf);
 		gen_cond(start->u.ifelse_stmt.condition, trueBlock, falseBlock);
+		bn = bb_newBlock(functionCount, ++blockCount, bf);
 	} else {
 		printf("QUAD ERROR: Not an If/else node\n");
 		return;
@@ -383,6 +374,32 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRNE, NULL, t, f);
 				break;
+			case LOGOR_OP: { //short circuit OR
+				block* temp = currentBlock;
+				block* bi = bb_newBlock(functionCount, ++blockCount, currentBlock); //intermediate block
+				currentBlock->next = bi;
+				t->u.block->prev = bi;
+				bi->next = t->u.block;
+				bi->prev = currentBlock;
+				gen_cond(expr->u.binop.left, t, blockToQnode(bi)); //test left expr
+				currentBlock = bi;
+				gen_cond(expr->u.binop.right, t, f); //test right expr
+				currentBlock = temp;
+				break;
+			}
+			case LOGAND_OP: { //short circuit AND
+				block* temp = currentBlock;
+				block* bi = bb_newBlock(functionCount, ++blockCount, currentBlock); //intermediate block
+				currentBlock->next = bi;
+				t->u.block->prev = bi;
+				bi->next = t->u.block;
+				bi->prev = currentBlock;
+				gen_cond(expr->u.binop.left, blockToQnode(bi), f); //test left expr
+				currentBlock = bi;
+				gen_cond(expr->u.binop.right, t, f); //test right expr
+				currentBlock = temp;
+				break;
+			}
 			default: {
 				qnode* val = gen_rvalue(expr, NULL);
 				qnode* zero = qnode_new(Q_CONSTANT);
@@ -419,6 +436,13 @@ qnode* new_temp() {
 	qnode* q = qnode_new(Q_TEMPORARY);
 	sprintf(q->name, "%%T%i", tempCount);
 	q->u.tempID = tempCount++;
+	return q;
+}
+
+qnode* blockToQnode(block* b) {
+	qnode* q = qnode_new(Q_LABEL);
+	q->name = strdup(b->name);
+	q->u.block = b;
 	return q;
 }
 
