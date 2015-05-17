@@ -10,14 +10,15 @@ char* nodeText[] = {
 	"ARRAY",
 	"FUNCTION",
 	"NUMBER",
-	"BINOP",
-	"UNOP",
+	"BINARY OP",
+	"UNARY OP",
 	"ASSIGN",
 	"IF",
 	"IF-ELSE",
 	"FOR",
 	"WHILE",
-	"LIST"
+	"FUNCTION CALL",
+	"LIST ITEM"
 };
 
 char* scalarText[] = {

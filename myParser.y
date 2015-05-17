@@ -18,12 +18,6 @@ void doScopeThing();
 node* doIdentThing(char* id);
 void traverseAST(node* start, int tabs);
 
-void initAST(struct ast *a);
-struct ast prependNode(struct ast a, node* t);
-struct ast appendNode(struct ast a, node* t);
-struct ast prependAST(struct ast a, struct ast b);
-struct ast appendAST(struct ast a, struct ast b);
-
 extern int yylex();
 extern int line;
 char filename[4096];
@@ -88,7 +82,7 @@ primary_expression
 			} else {
 				symbolTable* parent = searchSymbol(currentTable, $1);
 				if(parent) {
-					printf("Symbol found in outer scope\n");
+					//printf("Symbol found in outer scope\n");
 					$$ = getNode(parent, $1);
 				} else {
 					yyerror("Symbol not found");
@@ -97,7 +91,6 @@ primary_expression
 		}
 	| NUMBER {
 			$$ = ast_newNode(NUMBER_NODE);
-			printf("Number Node\n");
 			if ($1.typeFlag == INT_T || $1.typeFlag == LONG_T || $1.typeFlag == LONGLONG_T) {
 				//$$ = yylval.num.intBuff;
 				$$->u.number.value = $1.intBuff;
@@ -901,19 +894,18 @@ compound_statement
 		} declaration_or_statement_list '}' {
 			currentTable = leaveScope(currentTable, 0);
 			$$ = $3;
-			printf("\n$$ PRINTOUT\n");
 			
-			node* tmp = $$.topNode;
-			while(tmp!= $$.botNode) {
-				printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-				if(tmp->type == LIST_NODE) {
-					node* n = tmp->u.list.start;
-					traverseAST(n, 1);
-				}
-				tmp = tmp->next;
-			}
-			printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-			traverseAST(tmp->u.list.start, 1);
+			// node* tmp = $$.topNode;
+			// while(tmp!= $$.botNode) {
+			// 	printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+			// 	if(tmp->type == LIST_NODE) {
+			// 		node* n = tmp->u.list.start;
+			// 		traverseAST(n, 1);
+			// 	}
+			// 	tmp = tmp->next;
+			// }
+			// printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
+			// traverseAST(tmp->u.list.start, 1);
 		}
 	;
 
@@ -928,6 +920,7 @@ declaration_or_statement_list
 			node* n = ast_newNode(LIST_NODE);
 			n->u.list.start = $2;
 			$$ = appendNode($1, n);
+			printf("Adding to decl_stmt_list\n");
 		}
 	;
 
@@ -994,56 +987,17 @@ translation_unit
 
 external_declaration
 	: function_definition {printf("Left function!\n");}
-	| declaration
+	| declaration {traverseAST($1.topNode, 0);}
 	;
 
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {printf("func1\n");}
 	| declaration_specifiers declarator compound_statement {printf("func2\n");}
 	| declarator declaration_list compound_statement {printf("func3\n");}
-	| declarator compound_statement {printf("func4\n");}
+	| declarator compound_statement {traverseAST($2.topNode, 0);}
 	;
 
 %%
-void initAST(struct ast *a) {
-	a->topNode = NULL;
-	a->botNode = NULL;
-	a->errorFlag = 0;
-}
-
-struct ast prependNode(struct ast a, node* t) {
-	node* currentTop = a.topNode;
-	t->next = currentTop;
-	a.topNode = t;
-	if(!a.botNode) {
-		a.botNode = t;
-	}
-	return a;
-}
-
-struct ast appendNode(struct ast a, node* t) {
-	if(a.botNode) {
-		node* currentBot = a.botNode;
-		currentBot->next = t;
-	}
-	a.botNode = t;
-	if(!a.topNode) {
-		a.topNode = t;
-	}
-	return a;
-}
-
-struct ast prependAST(struct ast a, struct ast b) {
-	a = prependNode(a, b.botNode);
-	a.topNode = b.topNode;
-	return a;
-}
-
-struct ast appendAST(struct ast a, struct ast b) {
-	a = appendNode(a, b.topNode);
-	a.botNode = b.botNode;
-	return a;
-}
 
 node* doIdentThing(char* id) { //identifier declared
 	node* n = ast_newNode(IDENT_NODE);
@@ -1079,10 +1033,10 @@ void traverseAST(node* n, int tabs) {
 		for(i=0; i<tabs; i++) printf("\t");
 		printf("Binary Type %i\n", n->u.binop.type);
 		for(i=0; i<tabs; i++) printf("\t");
-		printf("Binary Left\n");
+		printf("Binary Left Operand\n");
 		traverseAST(n->u.binop.lvalue, tabs+1);
 		for(i=0; i<tabs; i++) printf("\t");
-		printf("Binary Right\n");
+		printf("Binary Right Operand\n");
 		traverseAST(n->u.binop.rvalue, tabs+1);
 	} else if(n->type == UNOP_NODE) {
 		for(i=0; i<tabs; i++) printf("\t");
@@ -1104,7 +1058,7 @@ void traverseAST(node* n, int tabs) {
 		printf("Number value %lli\n", n->u.number.value);
 	} else if(n->type == IDENT_NODE) {
 		for(i=0; i<tabs; i++) printf("\t");
-		printf("Identifier %s\n", n->u.ident.id);
+		printf("Identifier \"%s\"\n", n->u.ident.id);
 		traverseAST(n->next, tabs+1);
 	} else if(n->type == SCALAR_NODE) {
 		for(i=0; i<tabs; i++) printf("\t");
@@ -1116,6 +1070,14 @@ void traverseAST(node* n, int tabs) {
 		for(i=0; i<tabs; i++) printf("\t");
 		printf("If Statement Body\n");
 		traverseAST(n->u.if_stmt.if_block, tabs+1);
+	} else if(n->type == LIST_NODE) {
+		//printf("%itabs\n", tabs);
+		for(i=0; i<tabs; i++) printf("\t");
+		traverseAST(n->u.list.start, tabs+1);
+		if(n->next && n->next->type == LIST_NODE) {
+			//for(i=0; i<tabs; i++) printf("\t");
+			traverseAST(n->next, tabs);
+		}
 	} else {
 		for(i=0; i<tabs; i++) printf("\t");
 		printf("Something else?\n");

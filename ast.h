@@ -23,6 +23,7 @@ typedef enum nodeType {
 	IFELSE_NODE,
 	FOR_NODE,
 	WHILE_NODE,
+	CALL_NODE,
 	LIST_NODE
 } nodeType;
 
@@ -102,7 +103,7 @@ typedef struct node_for {
 typedef struct node_while {
 	node* condition;
 	node* body;
-	char do_stmt;
+	char do_stmt; //0 if while, 1 if do-while
 } node_while;
 
 typedef struct node_list {
@@ -133,5 +134,11 @@ struct node {
 
 //Creates a new AST node of the specified type, with no associations.
 node* ast_newNode(nodeType type);
+
+void initAST(struct ast *a);
+struct ast prependNode(struct ast a, node* t);
+struct ast appendNode(struct ast a, node* t);
+struct ast prependAST(struct ast a, struct ast b);
+struct ast appendAST(struct ast a, struct ast b);
 
 #endif
