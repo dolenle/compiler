@@ -12,7 +12,7 @@ myParser.tab.o: myParser.y
 	bison -vd myParser.y
 	gcc -c myParser.tab.c
 
-quad.o: quad.c quad.h
+quad.o: quad.c quad.h ast.h
 	gcc -c quad.c
 	
 tester.o: tester.c syms.o

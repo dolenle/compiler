@@ -4,8 +4,8 @@
 #include "globls.h"
 #include "syms.h"
 #include "ast.h"
-#include "print.h"
 #include "quad.h"
+#include "print.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -21,6 +21,7 @@ void traverseAST(node* start, int tabs);
 
 extern int yylex();
 extern int line;
+
 char filename[4096];
 
 symbolTable* currentTable;
@@ -120,6 +121,14 @@ postfix_expression
 		node *n = ast_newNode(BINOP_NODE);
 		$$->u.unop.operand = n;
 		n->u.binop.type = PLUS_OP;
+		// if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
+		// 	n->u.binop.left = $1;
+		// } else if($1->type == IDENT_NODE && $1->next->type == ARRAY_NODE) {
+		// 	node* cpy = ast_newNode(IDENT_NODE);
+		// 	n->u.binop.left = (node*) memcpy((void*) cpy,(void*) $1, sizeof(node));
+		// 	cpy->next = ast_newNode(POINTER_NODE);
+		// 	cpy->next->next = $1->next->next;
+		// }
 		n->u.binop.left = $1;
 		n->u.binop.right = $3;
 	}
@@ -1041,7 +1050,7 @@ translation_unit
 
 external_declaration
 	: function_definition {
-			//printf("Left function!\n");
+			printf("Left function!\n");
 			function_block($1.topNode);
 		}
 	| declaration {

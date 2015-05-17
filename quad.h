@@ -9,10 +9,10 @@
 typedef struct quad quad;
 typedef struct block block;
 
-int fnCount = 1;
-int blkCount = 1;
-int tmpCount = 1;
-block* curBlock = NULL;
+extern int functionCount;
+extern int blockCount;
+extern int tempCount;
+extern block* currentBlock;
 
 typedef enum opcode {
 	O_MOV,
@@ -25,7 +25,7 @@ typedef enum opcode {
 	O_BRGE, //branch if less than
 	O_BRLT,
 	O_BRLE,
-	O_BREQ,
+	O_BREQ, //10
 	O_BRNE,
 	O_INC,
 	O_DEC,
@@ -91,6 +91,7 @@ qnode* gen_rvalue(node* node, qnode* target);
 qnode* gen_lvalue(node* node, int* flag);
 qnode* gen_assign(node* node);
 opcode getBinop(binopType binop);
+qnode* new_temp();
 
 
 #endif
