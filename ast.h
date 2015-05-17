@@ -25,7 +25,8 @@ typedef enum nodeType {
 	WHILE_NODE,
 	CALL_NODE,
 	JUMP_NODE,
-	LIST_NODE
+	LIST_NODE,
+	TEMP_NODE
 } nodeType;
 
 //Define structs for the various node types
@@ -68,8 +69,8 @@ typedef struct node_num {
 } node_num;
 
 typedef struct node_binop {
-	node* lvalue;
-	node* rvalue;
+	node* left;
+	node* right;
 	binopType type;
 } node_binop;
 
@@ -122,6 +123,10 @@ typedef struct node_list {
 	node* start;
 } node_list;
 
+typedef struct node_temp {
+	int tempID;
+} node_temp;
+
 struct node {
 	nodeType type;
 	struct node* next;
@@ -143,6 +148,7 @@ struct node {
 		node_call call;
 		node_jump jump;
 		node_list list;
+		node_temp temp;
 	} u;
 };
 
