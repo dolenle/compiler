@@ -384,27 +384,27 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 			case LT_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRLT, NULL, t, f);
-				break;
+				return;;
 			case GT_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRGT, NULL, t, f);
-				break;
+				return;
 			case LTEQ_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRLE, NULL, t, f);
-				break;
+				return;
 			case GTEQ_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRGE, NULL, t, f);
-				break;
+				return;
 			case EQEQ_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BREQ, NULL, t, f);
-				break;
+				return;
 			case NOTEQ_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRNE, NULL, t, f);
-				break;
+				return;
 			case LOGOR_OP: { //short circuit OR
 				block* temp = currentBlock;
 				block* bi = bb_newBlock(functionCount, ++blockCount, currentBlock); //intermediate block
@@ -416,7 +416,7 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				currentBlock = bi;
 				gen_cond(expr->u.binop.right, t, f); //test right expr
 				currentBlock = temp;
-				break;
+				return;
 			}
 			case LOGAND_OP: { //short circuit AND
 				block* temp = currentBlock;
@@ -429,18 +429,20 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				currentBlock = bi;
 				gen_cond(expr->u.binop.right, t, f); //test right expr
 				currentBlock = temp;
-				break;
+				return;
 			}
 			default: {
-				qnode* val = gen_rvalue(expr, NULL);
-				qnode* zero = qnode_new(Q_CONSTANT);
-				zero->name = strdup("0");
-				zero->u.value = 0;
-				emit(O_CMP, NULL, val, zero);
-				emit(O_BRNE, NULL, t, f);
+				break;
 			}
 		}
 	}
+	//gen_cond for non-conditional expr
+	qnode* val = gen_rvalue(expr, NULL);
+	qnode* zero = qnode_new(Q_CONSTANT);
+	zero->name = strdup("0");
+	zero->u.value = 0;
+	emit(O_CMP, NULL, val, zero);
+	emit(O_BRNE, NULL, t, f);
 }
 
 void print_blocks(block* b) {
@@ -465,7 +467,6 @@ void print_blocks(block* b) {
 			} else {
 				printf("\n");
 			}
-			//printf("%s = %s %s, %s\n", q->dest?q->dest->name:"NULL", opcodeText[q->op], q->source1?q->source1->name:"NULL", q->source2?q->source2->name:"NULL");
 			if(q->next && q != b->bottom) {
 				q = q->next;
 			} else {
