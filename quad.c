@@ -71,7 +71,7 @@ block* bb_appendQuad(block* b, quad* q) {
 		b->top = q;
 		b->bottom = q;
 	} else {
-		printf("Inconsistent Basic Block\n");
+		printf("Error (bb_append): Inconsistent Basic Block\n");
 	}
 }
 
@@ -116,7 +116,7 @@ void stmt_list_parse(node* list) {
 		if(list && list->type == LIST_NODE) {
 			node* n = list->u.list.start;
 			if(n->type == ASSIGN_NODE) {
-				//printf("generating assignment quad...\n");
+				//printf("generating assignment quad in BB %s\n", currentBlock->name);
 				gen_assign(n);
 			} else if(n->type == BINOP_NODE) {
 				gen_rvalue(n, NULL);
@@ -307,6 +307,7 @@ qnode* gen_assign(node* a) {
 		int flag;
 		qnode* dest = gen_lvalue(a->u.assign.left, &flag);
 		if(flag == 0) { //direct
+			//printf("direct assign flag\n");
 			return gen_rvalue(right, dest);
 		} else if(flag == 1) { //indirect
 			qnode* rval = gen_rvalue(right, NULL);
@@ -319,9 +320,10 @@ qnode* gen_assign(node* a) {
 }
 
 void gen_if(node* start) {
-	block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock);
-	block* bf = bb_newBlock(functionCount, ++blockCount, bt);
-	block* bn;
+	//printf("%s\n", "processing IF NODE");
+	block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock); //true bb
+	block* bf = bb_newBlock(functionCount, ++blockCount, bt); //false bb
+	block* bn; //next bb
 	qnode* trueBlock = blockToQnode(bt);
 	qnode* falseBlock = blockToQnode(bf);
 	qnode* nextBlock;
@@ -339,12 +341,24 @@ void gen_if(node* start) {
 	currentBlock = bt; //begin true block
 	stmt_list_parse(start->u.if_stmt.if_block); //same for both if and ifelse
 	emit(O_BR, NULL, nextBlock, NULL); //unconditional jump
-
+	
 	if(start->type == IFELSE_NODE) {
+		if(currentBlock != bt) { //additional blocks were added
+			currentBlock->next = bf;
+		}
+		
 		currentBlock = bf; //false (else) block
 		stmt_list_parse(start->u.ifelse_stmt.else_block);
 		emit(O_BR, NULL, nextBlock, NULL);
+		
+		if(currentBlock != bf) { //additional blocks were added
+			currentBlock->next = bn;
+		}
+	} if(currentBlock != bt) { //additional blocks were added
+		currentBlock->next = bn;
 	}
+	
+	//printf("current block %s, setting to bn (%s)\n", currentBlock->name, bn->name);
 	currentBlock = bn;
 }
 
@@ -362,15 +376,24 @@ void gen_for(node* start) {
 		currentBlock = init;
 		stmt_list_parse(start->u.for_stmt.init);
 		gen_cond(start->u.for_stmt.condition, b, n);
+		if(currentBlock != init) { //additional blocks added
+			currentBlock->next = body;
+		}
 
 		currentBlock = body;
 		stmt_list_parse(start->u.for_stmt.body);
 		emit(O_BR, NULL, a, NULL);
+		if(currentBlock != body) { //additional blocks added
+			currentBlock->next = after;
+		}
 
 		currentBlock = after;
 		if(start->u.for_stmt.afterthought)
 			stmt_list_parse(start->u.for_stmt.afterthought);
 		gen_cond(start->u.for_stmt.condition, b, n);
+		if(currentBlock != after) { //additional blocks added
+			currentBlock->next = next;
+		}
 
 		currentBlock = next;
 	} else {
@@ -379,12 +402,13 @@ void gen_for(node* start) {
 }
 
 void gen_cond(node* expr, qnode* t, qnode* f) {
+	//printf("Processing conditional\n");
 	if(expr->type == BINOP_NODE) {
 		switch(expr->u.binop.type) {
 			case LT_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRLT, NULL, t, f);
-				return;;
+				return;
 			case GT_OP:
 				emit(O_CMP, NULL, gen_rvalue(expr->u.binop.left, NULL), gen_rvalue(expr->u.binop.right, NULL));
 				emit(O_BRGT, NULL, t, f);
@@ -470,6 +494,7 @@ void print_blocks(block* b) {
 			if(q->next && q != b->bottom) {
 				q = q->next;
 			} else {
+				//printf("end of BB %s\n", b->name);
 				break;
 			}
 		}
