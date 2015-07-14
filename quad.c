@@ -5,7 +5,7 @@ int blockCount = 1;
 int tempCount = 1;
 block* currentBlock = NULL;
 
-char* opcodeText[] = {
+char* opcodeText[] = { //opcode strings used by print function
 	"MOV",
 	"LOAD",
 	"LEA",
@@ -62,6 +62,7 @@ block* bb_newBlock(int funcID, int id, block* prev) {
 	return b;
 }
 
+//Add the quad to the specified basic block
 block* bb_appendQuad(block* b, quad* q) {
 	if(b->top && b->bottom) {
 		quad* temp = b->bottom;
@@ -75,6 +76,7 @@ block* bb_appendQuad(block* b, quad* q) {
 	}
 }
 
+//Create new quad node
 qnode* qnode_new(qnodeType type) {
 	qnode* q = malloc(sizeof(qnode));
 	if(!q){
@@ -203,7 +205,29 @@ qnode* gen_rvalue(node* node, qnode* target) {
 					emit(O_DEC, NULL, q, NULL);
 					return q;
 				}
-
+				case LOGNOT_OP: {					
+					block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock);
+					block* bf = bb_newBlock(functionCount, ++blockCount, bt);
+					block* bn = bb_newBlock(functionCount, ++blockCount, bf);
+					if(!target) target = new_temp();
+					
+					qnode* zero = qnode_new(Q_CONSTANT);
+					zero->name = strdup("0");
+					zero->u.value = 0;
+					qnode* one = qnode_new(Q_CONSTANT);
+					one->name = strdup("1");
+					one->u.value = 1;
+					
+					gen_cond(node->u.unop.operand, blockToQnode(bt), blockToQnode(bf));
+					currentBlock = bt;
+					emit(O_MOV, target, zero, NULL);
+					emit(O_BR, NULL, blockToQnode(bn), NULL);
+					currentBlock = bf;
+					emit(O_MOV, target, one, NULL);
+					emit(O_BR, NULL, blockToQnode(bn), NULL);
+					currentBlock = bn;
+					return target;
+				}
 				default:
 					printf("RVAL Unimplemented UNOP\n");
 			}
@@ -296,6 +320,7 @@ qnode* gen_lvalue(node* node, int* flag) {
 	}
 }
 
+//Generate quads for assignment
 qnode* gen_assign(node* a) {
 	if(a->type == ASSIGN_NODE) {
 		node* right = a->u.assign.right;
@@ -321,6 +346,7 @@ qnode* gen_assign(node* a) {
 	}
 }
 
+//Generate quads for IF statement
 void gen_if(node* start) {
 	//printf("%s\n", "processing IF NODE");
 	block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock); //true bb
@@ -329,6 +355,7 @@ void gen_if(node* start) {
 	qnode* trueBlock = blockToQnode(bt);
 	qnode* falseBlock = blockToQnode(bf);
 	qnode* nextBlock;
+	block* temp = currentBlock;
 	if(start->type == IF_NODE) {
 		bn = bf;
 		gen_cond(start->u.if_stmt.condition, trueBlock, falseBlock);
@@ -340,6 +367,9 @@ void gen_if(node* start) {
 		return;
 	}
 	nextBlock = blockToQnode(bn);
+	if(currentBlock != temp) {
+		currentBlock->next = bt;
+	}
 	currentBlock = bt; //begin true block
 	stmt_list_parse(start->u.if_stmt.if_block); //same for both if and ifelse
 	emit(O_BR, NULL, nextBlock, NULL); //unconditional jump
@@ -364,32 +394,37 @@ void gen_if(node* start) {
 	currentBlock = bn;
 }
 
+//Generate quads for WHILE and DO-WHILE loop
 void gen_while(node* start) {
 	printf("processing WHILE\n");
 	if(start->type == WHILE_NODE) {
 		block *cond, *body, *next;
-		if(start->u.while_stmt.do_stmt) {
+		if(start->u.while_stmt.do_stmt) { //do-while loop
 			body = bb_newBlock(functionCount, ++blockCount, currentBlock);
 			cond = bb_newBlock(functionCount, ++blockCount, body);
 			next = bb_newBlock(functionCount, ++blockCount, cond);
-		} else {
-			printf("standard while loop\n");
+		} else { //regular while loop
 			cond = bb_newBlock(functionCount, ++blockCount, currentBlock);
 			body = bb_newBlock(functionCount, ++blockCount, cond);
 			next = bb_newBlock(functionCount, ++blockCount, body);
 		}
-		printf("okey1\n");
 		
 		qnode* b = blockToQnode(body);
 		qnode* c = blockToQnode(cond);
 		qnode* n = blockToQnode(next);
-		printf("okey2\n");
 		
 		currentBlock = cond;
 		gen_cond(start->u.while_stmt.condition, b, n);
 		
 		currentBlock = body;
 		stmt_list_parse(start->u.while_stmt.body);
+		if(currentBlock != body) { //more blocks were added
+			if(start->u.while_stmt.do_stmt) { //do-while loop
+				currentBlock->next = cond;
+			} else {
+				currentBlock->next = next; //while loop
+			}
+		}
 		emit(O_BR, NULL, c, NULL);
 		
 		currentBlock = next;
@@ -399,6 +434,7 @@ void gen_while(node* start) {
 	}
 }
 
+//Generate quads for FOR loop
 void gen_for(node* start) {
 	if(start->type == FOR_NODE) {
 		block* init = bb_newBlock(functionCount, ++blockCount, currentBlock);
@@ -438,6 +474,7 @@ void gen_for(node* start) {
 	}
 }
 
+//Generate compare and branch quads
 void gen_cond(node* expr, qnode* t, qnode* f) {
 	//printf("Processing conditional\n");
 	if(expr->type == BINOP_NODE) {
@@ -506,6 +543,7 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 	emit(O_BRNE, NULL, t, f);
 }
 
+//Traverse BB linked list and print
 void print_blocks(block* b) {
 	while(b) {
 		printf("\n%s\n", b->name);
@@ -543,6 +581,7 @@ void print_blocks(block* b) {
 	}
 }
 
+//New temporary register qnode
 qnode* new_temp() {
 	qnode* q = qnode_new(Q_TEMPORARY);
 	sprintf(q->name, "%%T%i", tempCount);
@@ -550,6 +589,7 @@ qnode* new_temp() {
 	return q;
 }
 
+//Convert basic block to quad node
 qnode* blockToQnode(block* b) {
 	qnode* q = qnode_new(Q_LABEL);
 	q->name = strdup(b->name);
