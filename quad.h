@@ -88,8 +88,10 @@ struct block {
 };
 
 quad* emit(opcode op, qnode* dest, qnode* src1, qnode* src2);
+
 block* bb_begin(int funcID, int id, block* prev);
 block* bb_appendQuad(block* b, quad* q);
+
 qnode* qnode_new(qnodeType type);
 qnode* gen_rvalue(node* node, qnode* target);
 qnode* gen_lvalue(node* node, int* flag);
@@ -98,8 +100,10 @@ opcode getBinop(binopType binop);
 opcode assignToBinop(assignType assign);
 qnode* blockToQnode(block* b);
 qnode* new_temp();
+
 void gen_if(node* start);
 void gen_for(node* start);
+void gen_while(node* start);
 void gen_cond(node* expr, qnode* t, qnode* f);
 void stmt_list_parse(node* list);
 void function_block(node* body);

@@ -3,7 +3,7 @@ int z;
 f() {
 	if(x > 1) {
 		if(x == 3) {
-			x = 0;
+			x = z>4;
 		}
 		x++;
 	} else {

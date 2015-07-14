@@ -126,6 +126,8 @@ void stmt_list_parse(node* list) {
 				gen_if(n);
 			} else if(n->type == FOR_NODE) {
 				gen_for(n);
+			} else if(n->type == WHILE_NODE) {
+				gen_while(n);
 			}
 			if(list->next) {
 				list = list->next;
@@ -360,6 +362,41 @@ void gen_if(node* start) {
 	
 	//printf("current block %s, setting to bn (%s)\n", currentBlock->name, bn->name);
 	currentBlock = bn;
+}
+
+void gen_while(node* start) {
+	printf("processing WHILE\n");
+	if(start->type == WHILE_NODE) {
+		block *cond, *body, *next;
+		if(start->u.while_stmt.do_stmt) {
+			body = bb_newBlock(functionCount, ++blockCount, currentBlock);
+			cond = bb_newBlock(functionCount, ++blockCount, body);
+			next = bb_newBlock(functionCount, ++blockCount, cond);
+		} else {
+			printf("standard while loop\n");
+			cond = bb_newBlock(functionCount, ++blockCount, currentBlock);
+			body = bb_newBlock(functionCount, ++blockCount, cond);
+			next = bb_newBlock(functionCount, ++blockCount, body);
+		}
+		printf("okey1\n");
+		
+		qnode* b = blockToQnode(body);
+		qnode* c = blockToQnode(cond);
+		qnode* n = blockToQnode(next);
+		printf("okey2\n");
+		
+		currentBlock = cond;
+		gen_cond(start->u.while_stmt.condition, b, n);
+		
+		currentBlock = body;
+		stmt_list_parse(start->u.while_stmt.body);
+		emit(O_BR, NULL, c, NULL);
+		
+		currentBlock = next;
+		
+	} else {
+		printf("QUAD ERROR: Not a while loop\n");
+	}
 }
 
 void gen_for(node* start) {
