@@ -132,6 +132,7 @@ void stmt_list_parse(node* list) {
 				gen_while(n);
 			}
 			if(list->next) {
+				printf("nextType = %i\n", list->next->u.list.start->type);
 				list = list->next;
 			} else {
 				break;

@@ -899,7 +899,7 @@ initializer
 
 initializer_list
 	: initializer
-	| initializer_list ',' initializer
+	| initializer_list ',' initializer {}
 	;
 
 statement
@@ -949,10 +949,41 @@ compound_statement
 declaration_or_statement_list
 	: declaration_or_statement {
 			if($1 != NULL) {
-				node* n = ast_newNode(LIST_NODE);
-				n->u.list.start = $1;
+			/*
+				node* curr = $1;
 				initAST(&$$);
-				$$ = appendNode($$, n);
+				while(curr->next) {
+					if(curr->type == IDENT_NODE) {
+						node* n = ast_newNode(LIST_NODE);
+						n->u.list.start = curr;
+						$$ = appendNode($$, n);
+					}
+					curr = curr->next;
+				}
+			*/
+				if($1->type == IDENT_NODE) {
+					node* curr = $1;
+					initAST(&$$);
+					
+					node* n = ast_newNode(LIST_NODE);
+					n->u.list.start = curr;
+					$$ = appendNode($$, n);
+					curr = curr->next;
+					while(curr->next) {
+						printf("appending %i...\n", curr->next->type);
+						if(curr->type == IDENT_NODE) {
+							node* n = ast_newNode(LIST_NODE);
+							n->u.list.start = curr;
+							$$ = appendNode($$, n);
+						}
+						curr = curr->next;
+					}
+				} else {
+					node* n = ast_newNode(LIST_NODE);
+					n->u.list.start = $1;
+					initAST(&$$);
+					$$ = appendNode($$, n);
+				}
 			}
 		}
 	| declaration_or_statement_list declaration_or_statement {
@@ -970,6 +1001,7 @@ declaration_or_statement
 				$$ = $1.topNode;
 			} else {
 				$$ = NULL;
+				yyerror("Declaration error");
 			}
 		}
 	| statement
@@ -1238,6 +1270,27 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 			traverseAST(n->u.list.start, tabs+1);
 			if(n->next && n->next->type == LIST_NODE) {
 				traverseAST(n->next, tabs);
+			}
+		} else if(n->type == JUMP_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			switch(n->u.jump.type) {
+				case GOTO_JP:
+					printf("Jump Type GOTO\n");
+					break;
+				case CONTINUE_JP:
+					printf("Jump Type CONTINUE\n");
+					break;
+				case BREAK_JP:
+					printf("Jump Type BREAK\n");
+					break;
+				case RETURN_JP:
+					printf("Jump Type RETURN\n");
+					if(n->u.jump.target) {
+						for(i=0; i<tabs; i++) printf("\t");
+						printf("Return Target\n");
+						traverseAST(n->u.jump.target, tabs+1);
+					}
+					break;
 			}
 		} else {
 			for(i=0; i<tabs; i++) printf("\t");
