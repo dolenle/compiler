@@ -3,7 +3,10 @@
 int functionCount = 0;
 int blockCount = 1;
 int tempCount = 1;
+
 block* currentBlock = NULL;
+qnode* loop_break = NULL;
+qnode* loop_continue = NULL;
 
 char* opcodeText[] = { //opcode strings used by print function
 	"MOV",
@@ -57,6 +60,7 @@ block* bb_newBlock(int funcID, int id, block* prev) {
 	b->bottom = NULL;
 	b->branch1 = NULL;
 	b->branch2 = NULL;
+	b->br_type = BR_DEFAULT;
 	b->name = malloc(10);
 	sprintf(b->name, ".BB.%i.%i", b->funcID, b->blockID);
 	return b;
@@ -130,6 +134,8 @@ void stmt_list_parse(node* list) {
 				gen_for(n);
 			} else if(n->type == WHILE_NODE) {
 				gen_while(n);
+			} else if(n->type == JUMP_NODE) {
+
 			}
 			if(list->next) {
 				printf("nextType = %i\n", list->next->u.list.start->type);
@@ -290,6 +296,8 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				return target;
 			}
 		}
+		default:
+			printf("Error: Cannot generate LVAL for %i\n", node->type);
 	}
 	return NULL;
 }

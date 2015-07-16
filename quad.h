@@ -56,6 +56,13 @@ typedef enum qnodeType {
 	Q_LABEL
 } qnodeType;
 
+typedef enum branchType {
+	BR_DEFAULT, //fall-through
+	BR_SINGLE, //unconditional
+	BR_COND,
+	BR_EXIT
+} branchType;
+
 typedef struct qnode {
 	qnodeType type;
 	char* name;
@@ -82,6 +89,7 @@ struct block {
 	block* next;
 	block* branch1;
 	block* branch2;
+	branchType br_type;
 	int funcID;
 	int blockID;
 	char* name;
