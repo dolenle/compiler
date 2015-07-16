@@ -113,6 +113,8 @@ void gen_if(node* start);
 void gen_for(node* start);
 void gen_while(node* start);
 void gen_cond(node* expr, qnode* t, qnode* f);
+void gen_jmp(node* start);
+
 void stmt_list_parse(node* list);
 void function_block(node* body);
 

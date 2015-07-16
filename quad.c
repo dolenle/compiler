@@ -135,7 +135,7 @@ void stmt_list_parse(node* list) {
 			} else if(n->type == WHILE_NODE) {
 				gen_while(n);
 			} else if(n->type == JUMP_NODE) {
-
+				gen_jmp(n);
 			}
 			if(list->next) {
 				printf("nextType = %i\n", list->next->u.list.start->type);
@@ -550,6 +550,22 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 	zero->u.value = 0;
 	emit(O_CMP, NULL, val, zero);
 	emit(O_BRNE, NULL, t, f);
+}
+
+void gen_jmp(node* start) {
+	if(start->type == JUMP_NODE) {
+		if(start->u.jump.type == RETURN_JP) {
+			qnode* val = NULL;
+			if(start->u.jump.target) {
+				val = gen_rvalue(start->u.jump.target, NULL);
+			}
+			emit(O_RETURN, NULL, val, NULL); //emit return quad
+		} else {
+			printf("Non-return jumps not currently implemented...\n");
+		}
+	} else {
+		printf("QUAD ERROR: Not a jump statement\n");
+	}
 }
 
 //Traverse BB linked list and print
