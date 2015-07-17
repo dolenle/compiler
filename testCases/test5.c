@@ -3,7 +3,7 @@ void f()
 {
         int b, c, z();
         for(a=1;a<b;a++)
-                z(a);
+                z(a,2,z);
         return;
 }
 

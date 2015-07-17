@@ -112,6 +112,7 @@ typedef struct node_while {
 typedef struct node_call {
 	node* function;
 	node* args;
+	int argnum;
 } node_call;
 
 typedef struct node_jump {

@@ -132,11 +132,24 @@ postfix_expression
 			//Function call without arguments
 			$$ = ast_newNode(CALL_NODE);
 			$$->u.call.function = $1;
+			$$->u.call.argnum = 0;
 		}
 	| postfix_expression '(' argument_expression_list ')' {
 			$$ = ast_newNode(CALL_NODE);
 			$$->u.call.function = $1;
 			$$->u.call.args = $3.topNode;
+			//Compute # of arguments
+			int argnum = 0;
+			node* argptr = $3.topNode;
+			while(argptr) {
+				argnum++;
+				if(argptr->next) {
+					argptr = argptr->next;
+				} else {
+					break;
+				}
+			}
+			$$->u.call.argnum = argnum;
 		}
 	| postfix_expression '.' IDENT {
 			yyerror("Unimplemented Struct/Union Selector");
@@ -970,7 +983,7 @@ declaration_or_statement_list
 					$$ = appendNode($$, n);
 					curr = curr->next;
 					while(curr->next) {
-						printf("appending %i...\n", curr->next->type);
+						//printf("appending %i...\n", curr->next->type);
 						if(curr->type == IDENT_NODE) {
 							node* n = ast_newNode(LIST_NODE);
 							n->u.list.start = curr;
@@ -1291,6 +1304,24 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 						traverseAST(n->u.jump.target, tabs+1);
 					}
 					break;
+			}
+		} else if(n->type == CALL_NODE) {
+			int argnum = n->u.call.argnum;
+			/*
+			node* argptr = n->u.call.args;
+			while(argptr) {
+				argnum++;
+				if(argptr->next) {
+					argptr = argptr->next;
+				} else {
+					break;
+				}
+			}
+			*/
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("%i Arguments\n", argnum);
+			if(argnum) {
+				traverseAST(n->u.call.args, tabs+1);
 			}
 		} else {
 			for(i=0; i<tabs; i++) printf("\t");

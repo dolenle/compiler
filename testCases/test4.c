@@ -25,6 +25,14 @@ g() {
 }
 h() {
 	if(!x) {
+		int z;
+		z = 100;
+		while(z>0) {
+			while(x>0) {
+				x--;
+			}
+		}
 		y++;
 	}
+	return y;
 }

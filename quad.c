@@ -136,9 +136,27 @@ void stmt_list_parse(node* list) {
 				gen_while(n);
 			} else if(n->type == JUMP_NODE) {
 				gen_jmp(n);
+			} else if(n->type == CALL_NODE) { //Function Call
+				int argnum = n->u.call.argnum;
+				qnode* num = qnode_new(Q_CONSTANT);
+				num->name = malloc(100);
+				sprintf(num->name, "%i", argnum);
+				num->u.value = argnum;
+				emit(O_ARGNUM, NULL, num, NULL);
+				if(argnum) { //Generate argument quad
+					node* argptr = n->u.call.args;
+					while(argptr) {
+						emit(O_ARGDEF, NULL, gen_rvalue(argptr->u.list.start, NULL), NULL);
+						if(argptr->next) {
+							argptr = argptr->next;
+						} else {
+							break;
+						}
+					}
+				}
+				emit(O_CALL, NULL, gen_rvalue(n->u.call.function, NULL), NULL);
 			}
 			if(list->next) {
-				printf("nextType = %i\n", list->next->u.list.start->type);
 				list = list->next;
 			} else {
 				break;
@@ -156,7 +174,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 			qnode* q = qnode_new(Q_IDENT);
 			q->name = node->u.ident.id;
 			q->u.ast = node;
-			if(node->next->type == SCALAR_NODE || node->next->type == POINTER_NODE) {			
+			if(node->next->type == SCALAR_NODE || node->next->type == POINTER_NODE || node->next->type == FUNCTION_NODE) {			
 				return q;
 			} else if(node->next->type == ARRAY_NODE) {
 				qnode* dest = new_temp();
@@ -297,7 +315,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 			}
 		}
 		default:
-			printf("Error: Cannot generate LVAL for %i\n", node->type);
+			printf("Error: Cannot generate RVALUE for AST node type %i\n", node->type);
 	}
 	return NULL;
 }
