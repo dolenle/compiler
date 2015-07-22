@@ -116,7 +116,7 @@ postfix_expression
 		}
 	| postfix_expression '[' expression ']' {
 		if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
-
+			printf("Something is not implemented\n");
 		} else {
 			//CONVERT TO *(E1+E2)
 			$$ = ast_newNode(UNOP_NODE);

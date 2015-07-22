@@ -594,7 +594,19 @@ void print_blocks(block* b) {
 		while(q) {
 			printf("\t");
 			if(q->dest) {
-				printf("%s =\t", q->dest->name);
+				printf("%s", q->dest->name);
+				if(q->dest->type == Q_IDENT) {
+					if(q->dest->u.ast->type == IDENT_NODE) {
+						if(q->dest->u.ast->u.ident.stor == SG_STATIC) {
+							printf("<gl>");
+						} else if(q->dest->u.ast->u.ident.stor == SG_AUTO) {
+							printf("<at>");
+						}
+					} else {
+						printf("IDENT quad not linked to IDENT NODE!\n");
+					}
+				}
+				printf(" =\t");
 			} else {
 				printf("\t");
 			}
