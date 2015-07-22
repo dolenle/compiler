@@ -1145,8 +1145,9 @@ translation_unit
 
 external_declaration
 	: function_definition {
-			printf("Left function!\n");
-			function_block($1.topNode);
+			printf("\nFunction \"%s\" Definition\n", $1.topNode->u.ident.id);
+			traverseAST($1.topNode, 0);
+			function_block($1.botNode->u.function.body);
 		}
 	| declaration {
 			if(print_decl) traverseAST($1.topNode, 0);
@@ -1160,13 +1161,11 @@ function_definition
 				if($1.botNode->type == SCALAR_NODE) {
 					$2.botNode->next = $1.botNode; //set return type
 					$2.botNode->u.function.body = $3.topNode;
-					printf("\nFunction \"%s\" Definition AST\n", $2.topNode->u.ident.id);
-					traverseAST($3.topNode, 0);
 				}
 			} else {
 				printf("Expected function declarator!\n");
 			}
-			$$ = $3;
+			$$ = $2;
 		}
 	| declarator declaration_list compound_statement {printf("func3\n");}
 	| declarator compound_statement {
@@ -1175,12 +1174,10 @@ function_definition
 				t->u.scalar.type = S_INT; //default return type;
 				$1.botNode->next = t; //set return type
 				$1.botNode->u.function.body = $2.topNode;
-				printf("\nFunction \"%s\" Definition AST\n", $1.topNode->u.ident.id);
-				traverseAST($2.topNode, 0);
 			} else {
 				printf("Expected function declarator!\n");
 			}
-			$$ = $2;
+			$$ = $1;
 		}
 	;
 
@@ -1307,22 +1304,14 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 			}
 		} else if(n->type == CALL_NODE) {
 			int argnum = n->u.call.argnum;
-			/*
-			node* argptr = n->u.call.args;
-			while(argptr) {
-				argnum++;
-				if(argptr->next) {
-					argptr = argptr->next;
-				} else {
-					break;
-				}
-			}
-			*/
 			for(i=0; i<tabs; i++) printf("\t");
 			printf("%i Arguments\n", argnum);
 			if(argnum) {
 				traverseAST(n->u.call.args, tabs+1);
 			}
+		} else if(n->type == FUNCTION_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			traverseAST(n->u.function.body, tabs+1);
 		} else {
 			for(i=0; i<tabs; i++) printf("\t");
 			printf("Something else?\n");

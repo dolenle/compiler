@@ -4,4 +4,8 @@
 #include "globls.h"
 #include "quad.h"
 
+char* format_operand(qnode* qn);
+void* translate_quad(quad* q);
+void* translate_function();
+
 #endif
