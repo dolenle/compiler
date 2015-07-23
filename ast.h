@@ -37,6 +37,7 @@ typedef struct node_ident {
 	char* id;
 	storageType stor;
 	node* next;
+	int pos;
 } node_ident;
 
 typedef struct node_scalar {

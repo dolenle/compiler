@@ -1,5 +1,5 @@
-c--: myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o
-	gcc -o c-- myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o
+c--: myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o asm.o
+	gcc -o c-- myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o asm.o
 
 tester: tester.o syms.o hash.o
 	gcc -o tester tester.o syms.o hash.o
@@ -11,6 +11,9 @@ lex.yy.o: myLex.l
 myParser.tab.o: myParser.y
 	bison -vd myParser.y
 	gcc -c myParser.tab.c
+
+asm.o: asm.c asm.h ast.h quad.h
+	gcc -c asm.c
 
 quad.o: quad.c quad.h ast.h
 	gcc -c quad.c

@@ -5,7 +5,7 @@
 #include "quad.h"
 
 char* format_operand(qnode* qn);
-void* translate_quad(quad* q);
-void* translate_function();
+void translate_quad(quad* q);
+void translate_function(char* name, block* start);
 
 #endif

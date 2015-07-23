@@ -66,7 +66,7 @@ typedef enum branchType {
 typedef struct qnode {
 	qnodeType type;
 	char* name;
-	int pos;
+	int* pos;
 	union {
 		node* ast;
 		block* block;
@@ -117,7 +117,7 @@ void gen_cond(node* expr, qnode* t, qnode* f);
 void gen_jmp(node* start);
 
 void stmt_list_parse(node* list);
-void function_block(node* body);
+block* function_block(node* body);
 
 void print_blocks(block* start);
 

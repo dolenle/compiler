@@ -89,7 +89,7 @@ qnode* qnode_new(qnodeType type) {
 	}
 	q->type = type;
 	q->name = malloc(256);
-	q->pos = -1; 
+	q->pos = NULL; 
 	return q;
 }
 
@@ -110,12 +110,13 @@ quad* emit(opcode op, qnode* dest, qnode* src1, qnode* src2) {
 	return q;
 }
 
-void function_block(node* body) {
+block* function_block(node* body) {
 	blockCount = 1;
 	currentBlock = bb_newBlock(++functionCount, blockCount, currentBlock);
 	block* tmp = currentBlock;
 	stmt_list_parse(body);
 	print_blocks(tmp);
+	return tmp;
 }
 
 void stmt_list_parse(node* list) {
@@ -175,7 +176,13 @@ qnode* gen_rvalue(node* node, qnode* target) {
 			qnode* q = qnode_new(Q_IDENT);
 			q->name = node->u.ident.id;
 			q->u.ast = node;
+			q->pos = &(node->u.ident.pos);
 			if(node->next->type == SCALAR_NODE || node->next->type == POINTER_NODE || node->next->type == FUNCTION_NODE) {			
+				if(target && target->type == Q_IDENT) {
+					if(target->u.ast->next->type == SCALAR_NODE) {
+						emit(O_MOV, target, q, NULL);
+					}
+				}
 				return q;
 			} else if(node->next->type == ARRAY_NODE) {
 				qnode* dest = new_temp();
@@ -328,6 +335,7 @@ qnode* gen_lvalue(node* node, int* flag) {
 				qnode* q = qnode_new(Q_IDENT);
 				q->name = node->u.ident.id;
 				q->u.ast = node;
+				q->pos = &(node->u.ident.pos);
 				*flag = 0; //direct assignment
 				return q;
 			} else {
@@ -352,7 +360,7 @@ qnode* gen_lvalue(node* node, int* flag) {
 qnode* gen_assign(node* a) {
 	if(a->type == ASSIGN_NODE) {
 		node* right = a->u.assign.right;
-		if(a->u.assign.type != EQ_OP) { //conver assignment
+		if(a->u.assign.type != EQ_OP) { //convert assignment
 			node* b = ast_newNode(BINOP_NODE);
 			b->u.binop.type = assignToBinop(a->u.assign.type);
 			b->u.binop.left = a->u.assign.left;
@@ -642,6 +650,8 @@ qnode* new_temp() {
 	qnode* q = qnode_new(Q_TEMPORARY);
 	sprintf(q->name, "%%T%i", tempCount);
 	q->u.tempID = tempCount++;
+	q->pos = malloc(sizeof(int));
+	*(q->pos) = -1;
 	return q;
 }
 

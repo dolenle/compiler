@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "quad.h"
 #include "print.h"
+#include "asm.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -1231,6 +1232,7 @@ node* doIdentThing(char* id) { //identifier declared
 	n->u.ident.ns = currentNamespace;
 	n->u.ident.line = line;
 	n->u.ident.id = id;
+	n->u.ident.pos = -1;
 	//TODO: dont install if unnamed struct
 	if(!containsSymbol(currentTable, id)) {
 		installSymbol(currentTable, id);
@@ -1355,10 +1357,10 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 				traverseAST(n->u.call.args, tabs+1);
 			}
 		} else if(n->type == FUNCTION_NODE) {
-			for(i=0; i<tabs; i++) printf("\t");
 			if(n->u.function.body) {
 				traverseAST(n->u.function.body, tabs+1);
 			} else {
+				for(i=0; i<tabs; i++) printf("\t");
 				printf("No function body...\n");
 			}
 		} else {
@@ -1382,7 +1384,8 @@ void finalPrint() {
 	do {
 		node* s = n->u.list.start;
 		if(s->type == IDENT_NODE && s->next->type == FUNCTION_NODE) {
-			function_block(s->next->u.function.body);
+			block* f = function_block(s->next->u.function.body);
+			translate_function(s->u.ident.id, f);
 		}
 		if(n->next) {
 			n = n->next;
