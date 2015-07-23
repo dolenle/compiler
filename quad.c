@@ -89,6 +89,7 @@ qnode* qnode_new(qnodeType type) {
 	}
 	q->type = type;
 	q->name = malloc(256);
+	q->pos = -1; 
 	return q;
 }
 

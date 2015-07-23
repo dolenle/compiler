@@ -26,6 +26,7 @@ char filename[4096];
 
 symbolTable* currentTable;
 namespaceType currentNamespace = DEFAULT_SPACE;
+struct ast finalTree;
 
 char currentSym[128]; //probably not the proper way to do this
 %}
@@ -69,7 +70,7 @@ expression_statement selection_statement iteration_statement jump_statement
 
 %type <ast> init_declarator init_declarator_list declarator direct_declarator pointer
 declaration_specifiers declaration_or_statement_list declaration compound_statement
-argument_expression_list function_definition
+argument_expression_list function_definition external_declaration
 
 %start translation_unit;
 
@@ -1139,18 +1140,60 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration
-	| translation_unit external_declaration
+	: external_declaration {
+			if($1.topNode->type == LIST_NODE) { //append directly
+				finalTree = appendAST(finalTree, $1);
+			} else { //wrap in list item
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $1.topNode;
+				finalTree = appendNode(finalTree, n);
+			}
+		}
+	| translation_unit external_declaration {
+			if($2.topNode->type == LIST_NODE) { //append directly
+				finalTree = appendAST(finalTree, $2);
+			} else { //wrap in list item
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $2.topNode;
+				finalTree = appendNode(finalTree, n);
+			}
+		}
 	;
 
 external_declaration
 	: function_definition {
-			printf("\nFunction \"%s\" Definition\n", $1.topNode->u.ident.id);
-			traverseAST($1.topNode, 0);
-			function_block($1.botNode->u.function.body);
+			if(print_decl) {
+				printf("\nFunction \"%s\" Definition\n", $1.topNode->u.ident.id);
+				traverseAST($1.topNode, 0);
+				function_block($1.botNode->u.function.body);
+			}
+			$$ = $1;
 		}
 	| declaration {
 			if(print_decl) traverseAST($1.topNode, 0);
+			if($1.topNode->type == IDENT_NODE) {
+				node* curr = $1.topNode;
+				initAST(&$$);
+				
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = curr;
+				$$ = appendNode($$, n);
+				curr = curr->next;
+				while(curr->next) {
+					//printf("appending %i...\n", curr->next->type);
+					if(curr->type == IDENT_NODE) {
+						node* n = ast_newNode(LIST_NODE);
+						n->u.list.start = curr;
+						$$ = appendNode($$, n);
+					}
+					curr = curr->next;
+				}
+			} else {
+				node* n = ast_newNode(LIST_NODE);
+				n->u.list.start = $1.topNode;
+				initAST(&$$);
+				$$ = appendNode($$, n);
+			}
 		}
 	;
 
@@ -1244,6 +1287,8 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 		} else if(n->type == IDENT_NODE) {
 			for(i=0; i<tabs; i++) printf("\t");
 			printf("Identifier \"%s\"\n", n->u.ident.id);
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("Storage class %i\n", n->u.ident.stor);
 			traverseAST(n->next, tabs+1);
 		} else if(n->type == SCALAR_NODE) {
 			for(i=0; i<tabs; i++) printf("\t");
@@ -1311,7 +1356,11 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 			}
 		} else if(n->type == FUNCTION_NODE) {
 			for(i=0; i<tabs; i++) printf("\t");
-			traverseAST(n->u.function.body, tabs+1);
+			if(n->u.function.body) {
+				traverseAST(n->u.function.body, tabs+1);
+			} else {
+				printf("No function body...\n");
+			}
 		} else {
 			for(i=0; i<tabs; i++) printf("\t");
 			printf("Something else?\n");
@@ -1327,10 +1376,28 @@ void yyerror(const char* s) {
 	fprintf(stderr, "Error: %s on line %i\n", s, line);
 }
 
+void finalPrint() {
+	traverseAST(finalTree.topNode, 0);
+	node* n = finalTree.topNode;
+	do {
+		node* s = n->u.list.start;
+		if(s->type == IDENT_NODE && s->next->type == FUNCTION_NODE) {
+			function_block(s->next->u.function.body);
+		}
+		if(n->next) {
+			n = n->next;
+		} else {
+			break;
+		}
+	} while(1);
+}
+
 int main(int argc, char** argv) {
 	printf("[C--, The Shitty C Parser]\n");
 	strcpy(filename, "Placeholder.c");
 	currentTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
+	initAST(&finalTree);
 	yyparse();
+	finalPrint();
 	return 0;
 }

@@ -1,14 +1,22 @@
-int a;
-void f()
-{
-        int b, c, z();
-        for(a=1;a<b;a++)
-                z(a,2,z);
-        return;
-}
+// int a;
+// int c;
+// long x;
+// int m,n,o;
+// void f()
+// {
+//         int b, c, z();
+//         for(a=1;a<b;a++)
+//                 z(a,2,z);
+//         return;
+// }
 
-int b() {
-        return 5;
+// int b() {
+//         return 5;
+// }
+
+f() {
+        int x[10];
+        x[0] = 2;
 }
 
 // int main() {
