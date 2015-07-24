@@ -252,7 +252,7 @@ void translate_quad(quad* q) {
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("addl", "%eax", "%edx", NULL);
-			push_asm("movl", "%edx", format_operand(q->source2), NULL);
+			push_asm("movl", "%edx", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_SUB: {
@@ -264,7 +264,7 @@ void translate_quad(quad* q) {
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("subl", "%eax", "%edx", NULL);
-			push_asm("movl", "%edx", format_operand(q->source2), NULL);
+			push_asm("movl", "%edx", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_SHL: {
@@ -465,7 +465,7 @@ void translate_function(char* name, block* b) {
 			break;
 		}
 	}
-	sprintf(asmBuffer, "\tsubl $%i %%esp", nextOffset);
+	sprintf(asmBuffer, "\tsubl $%i, %%esp", nextOffset);
 	espPtr->text = strndup(asmBuffer, ASM_LENGTH-1);
 	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
 	push_text(asmBuffer);
