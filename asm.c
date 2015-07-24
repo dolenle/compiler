@@ -478,9 +478,9 @@ asm_list* push_asm(char* instruction, char* addr1, char* addr2, char* addr3) {
 		if(addr1) {
 			if(addr2) {
 				if(addr3) {
-					sprintf(asmBuffer, "\t%s %s %s %s", instruction, addr1, addr2, addr3);
+					sprintf(asmBuffer, "\t%s %s, %s, %s", instruction, addr1, addr2, addr3);
 				} else {
-					sprintf(asmBuffer, "\t%s %s %s", instruction, addr1, addr2);
+					sprintf(asmBuffer, "\t%s %s, %s", instruction, addr1, addr2);
 				}
 			} else {
 				sprintf(asmBuffer, "\t%s %s", instruction, addr1);
