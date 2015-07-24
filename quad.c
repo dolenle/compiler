@@ -3,6 +3,7 @@
 int functionCount = 0;
 int blockCount = 1;
 int tempCount = 1;
+int stringCount = 1;
 
 block* currentBlock = NULL;
 qnode* loop_break = NULL;
@@ -170,21 +171,21 @@ void stmt_list_parse(node* list) {
 	}
 }
 
-qnode* gen_rvalue(node* node, qnode* target) {
-	switch(node->type) {
+qnode* gen_rvalue(node* n, qnode* target) {
+	switch(n->type) {
 		case IDENT_NODE: {
 			qnode* q = qnode_new(Q_IDENT);
-			q->name = node->u.ident.id;
-			q->u.ast = node;
-			q->pos = &(node->u.ident.pos);
-			if(node->next->type == SCALAR_NODE || node->next->type == POINTER_NODE || node->next->type == FUNCTION_NODE) {			
+			q->name = n->u.ident.id;
+			q->u.ast = n;
+			q->pos = &(n->u.ident.pos);
+			if(n->next->type == SCALAR_NODE || n->next->type == POINTER_NODE || n->next->type == FUNCTION_NODE) {			
 				if(target && target->type == Q_IDENT) {
 					if(target->u.ast->next->type == SCALAR_NODE) {
 						emit(O_MOV, target, q, NULL);
 					}
 				}
 				return q;
-			} else if(node->next->type == ARRAY_NODE) {
+			} else if(n->next->type == ARRAY_NODE) {
 				qnode* dest = new_temp();
 				emit(O_LEA, dest, q, NULL);
 				return dest;
@@ -196,8 +197,8 @@ qnode* gen_rvalue(node* node, qnode* target) {
 		case NUMBER_NODE: {
 			//printf("RVAL-CONST\n");
 			qnode* q = qnode_new(Q_CONSTANT);
-			sprintf(q->name, "%lli", node->u.number.value);
-			q->u.value = node->u.number.value;
+			sprintf(q->name, "%lli", n->u.number.value);
+			q->u.value = n->u.number.value;
 			if(target && target->type == Q_IDENT) {
 				if(target->u.ast->next->type == SCALAR_NODE) {
 					emit(O_MOV, target, q, NULL);
@@ -207,34 +208,34 @@ qnode* gen_rvalue(node* node, qnode* target) {
 			break;
 		}
 		case UNOP_NODE: {
-			switch(node->u.unop.type) {
+			switch(n->u.unop.type) {
 				case DEREF_OP: {
-					qnode* addr = gen_rvalue(node->u.unop.operand, NULL);
+					qnode* addr = gen_rvalue(n->u.unop.operand, NULL);
 					if(!target) target = new_temp();
 					emit(O_LOAD, target, addr, NULL);
 					return target;
 				}
 				case POSTINC_OP: {
-					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					qnode* q = gen_rvalue(n->u.unop.operand, NULL);
 					if(!target) target = new_temp();
 					emit(O_MOV, target, q, NULL);
 					emit(O_INC, NULL, q, NULL);
 					return target;
 				}
 				case POSTDEC_OP: {
-					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					qnode* q = gen_rvalue(n->u.unop.operand, NULL);
 					if(!target) target = new_temp();
 					emit(O_MOV, target, q, NULL);
 					emit(O_DEC, NULL, q, NULL);
 					return target;
 				}
 				case PREINC_OP: {
-					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					qnode* q = gen_rvalue(n->u.unop.operand, NULL);
 					emit(O_INC, NULL, q, NULL);
 					return q;
 				}
 				case PREDEC_OP: {
-					qnode* q = gen_rvalue(node->u.unop.operand, NULL);
+					qnode* q = gen_rvalue(n->u.unop.operand, NULL);
 					emit(O_DEC, NULL, q, NULL);
 					return q;
 				}
@@ -251,7 +252,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 					one->name = strdup("1");
 					one->u.value = 1;
 					
-					gen_cond(node->u.unop.operand, blockToQnode(bt), blockToQnode(bf));
+					gen_cond(n->u.unop.operand, blockToQnode(bt), blockToQnode(bf));
 					currentBlock = bt;
 					emit(O_MOV, target, zero, NULL);
 					emit(O_BR, NULL, blockToQnode(bn), NULL);
@@ -268,7 +269,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 		}
 		case BINOP_NODE: {
 			//boolean expression
-			if((node->u.binop.type >= LT_OP && node->u.binop.type <= NOTEQ_OP) || node->u.binop.type >= LOGOR_OP) {
+			if((n->u.binop.type >= LT_OP && n->u.binop.type <= NOTEQ_OP) || n->u.binop.type >= LOGOR_OP) {
 				if(!target) target = new_temp();
 				block* temp = currentBlock;
 				block* bt = bb_newBlock(functionCount, ++blockCount, currentBlock);
@@ -288,7 +289,7 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				one->name = strdup("1");
 				one->u.value = 1;
 
-				gen_cond(node, trueBlock, falseBlock); //evaluate expression
+				gen_cond(n, trueBlock, falseBlock); //evaluate expression
 				currentBlock = bt; //true
 				emit(O_MOV, target, one, NULL);
 				emit(O_BR, NULL, nextBlock, NULL);
@@ -299,12 +300,12 @@ qnode* gen_rvalue(node* node, qnode* target) {
 				currentBlock = bn;
 				return target;
 			} else {
-				qnode* left = gen_rvalue(node->u.binop.left, NULL);
-				qnode* right = gen_rvalue(node->u.binop.right, NULL);
-				if(node->u.binop.left->type == IDENT_NODE && node->u.binop.left->next->type == ARRAY_NODE) {
+				qnode* left = gen_rvalue(n->u.binop.left, NULL);
+				qnode* right = gen_rvalue(n->u.binop.right, NULL);
+				if(n->u.binop.left->type == IDENT_NODE && n->u.binop.left->next->type == ARRAY_NODE) {
 					qnode* temp = new_temp();
 					qnode* size = qnode_new(Q_CONSTANT);
-					int nextType = node->u.binop.left->next->next->type;
+					int nextType = n->u.binop.left->next->next->type;
 					if(nextType == SCALAR_NODE) {
 						sprintf(size->name, "%li", sizeof(long long int));
 						size->u.value = (long long) sizeof(long long int);
@@ -318,12 +319,54 @@ qnode* gen_rvalue(node* node, qnode* target) {
 					right = temp;
 				}
 				if(!target) target = new_temp();
-				emit(getBinop(node->u.binop.type), target, left, right);
+				emit(getBinop(n->u.binop.type), target, left, right);
 				return target;
 			}
 		}
+		case CALL_NODE: {
+			if(n->u.call.function) {
+				int argnum = n->u.call.argnum;
+				qnode* num = qnode_new(Q_CONSTANT);
+				num->name = malloc(64);
+				sprintf(num->name, "%i", argnum);
+				num->u.value = argnum;
+				emit(O_ARGNUM, NULL, num, NULL);
+				if(argnum) { //Generate argument quad
+					node* argptr = n->u.call.args;
+					while(argptr) {
+						emit(O_ARGDEF, NULL, gen_rvalue(argptr->u.list.start, NULL), NULL);
+						if(argptr->next) {
+							argptr = argptr->next;
+						} else {
+							break;
+						}
+					}
+				}
+				if(!target) target = new_temp();
+				emit(O_CALL, target, gen_rvalue(n->u.call.function, NULL), NULL);
+				return target;
+			} else {
+				printf("Error: Call Node RVALUE\n");
+			}
+			break;
+		}
+		case STRING_NODE: {
+			qnode* str = qnode_new(Q_STRING);
+			str->name = malloc(64);
+			sprintf(str->name, "%%S%i", stringCount++);
+			str->u.ast = n;
+			if(target && target->type == Q_IDENT) {
+				if(target->u.ast->next->type == POINTER_NODE) {
+					emit(O_MOV, target, str, NULL);
+					return target;
+				}
+			} else {
+				return str;
+			}
+		}
 		default:
-			printf("Error: Cannot generate RVALUE for AST node type %i\n", node->type);
+			printf("Error: Cannot generate RVALUE for AST node type %i\n", n->type);
+			exit(1);
 	}
 	return NULL;
 }
@@ -339,7 +382,7 @@ qnode* gen_lvalue(node* node, int* flag) {
 				*flag = 0; //direct assignment
 				return q;
 			} else {
-				printf("LVAL Unimplemented IDENT");
+				printf("LVAL Unimplemented IDENT->%i \n", node->next->type);
 			}
 			break;
 		case NUMBER_NODE: {
@@ -350,9 +393,12 @@ qnode* gen_lvalue(node* node, int* flag) {
 				*flag = 1; //indirect assignment via ptr
 				return gen_rvalue(node->u.unop.operand, NULL);
 			} else {
-				printf("LVAL Unimplemented UNOP");
+				printf("LVAL Unimplemented UNOP\n");
 			}
 		}
+		default:
+			printf("Error: Cannot generate LVALUE for AST node type %i\n", node->type);
+			exit(1);
 	}
 }
 

@@ -4,26 +4,37 @@
 // int m,n,o;
 // void f()
 // {
-//         int b, c, z();
+//         int a, b, c, z();
 //         for(a=1;a<b;a++)
 //                 z(a,2,z);
 //         return;
 // }
 
-// int b() {
-//         return 5;
-// }
-
-f() {
-        int x,y;
-        int a[10];
-        x = 2;
-        a[5] = 7;
-        if(a[5] && y > x) {
-        	y++;
-    	}
-    	f(x);
+q() {
+	int x,y,z;
+	if(x > y && z) {
+		x+=2;
+	}
+	char s[5];
+	s = "hello";
 }
+// void g();
+// 
+// int b() {
+// 	g("hello");
+// 	return 5;
+// }
+// 
+// f() {
+//         int x,y;
+//         int a[10];
+//         x = 2;
+//         a[5] = 7;
+//         if(a[5] && y > x) {
+//         	y++;
+//     	}
+//     	y = b(x);
+// }
 
 // int main() {
         // int a;

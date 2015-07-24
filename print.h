@@ -19,7 +19,8 @@ char* nodeText[] = {
 	"WHILE",
 	"FUNCTION CALL",
 	"JUMP",
-	"LIST ITEM"
+	"LIST ITEM",
+	"STRING"
 };
 
 char* scalarText[] = {

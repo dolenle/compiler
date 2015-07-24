@@ -53,7 +53,8 @@ typedef enum qnodeType {
 	Q_IDENT,
 	Q_TEMPORARY,
 	Q_CONSTANT,
-	Q_LABEL
+	Q_LABEL,
+	Q_STRING
 } qnodeType;
 
 typedef enum branchType {

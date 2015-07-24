@@ -159,7 +159,7 @@ L?\'	BEGIN(charmode);
 
 
  /*string literals*/
-L?\"	BEGIN(stringmode);
+L?\"	{BEGIN(stringmode); yylval.stringBuff = malloc(1024);}
 <stringmode>{
 	\\0		{strcat(yylval.stringBuff, "\\0");}
 	\\a		{strcat(yylval.stringBuff, "\\a");}

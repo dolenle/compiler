@@ -29,7 +29,6 @@ symbolTable* currentTable;
 namespaceType currentNamespace = DEFAULT_SPACE;
 struct ast finalTree;
 
-char currentSym[128]; //probably not the proper way to do this
 %}
 
 %union {
@@ -80,9 +79,6 @@ argument_expression_list function_definition external_declaration
 primary_expression
 	: IDENT {
 			if(containsSymbol(currentTable, $1)) {
-				//$$ = getSymbolValue(currentTable, $1);
-				//strcpy(currentSym, $1);
-				//printf("exprval: %lli\n",$$);
 				$$ = getNode(currentTable, $1);
 			} else {
 				symbolTable* parent = searchSymbol(currentTable, $1);
@@ -107,7 +103,10 @@ primary_expression
 			$$->u.number.typeFlag = $1.typeFlag;
 			$$->u.number.signFlag = $1.signFlag;
 		}
-	| STRING {yyerror("Strings not supported.");}
+	| STRING {
+			$$ = ast_newNode(STRING_NODE);
+			$$->u.string.value = $1;
+		}
 	| '(' expression ')' {$$ = $2;}
 	;
 	
@@ -1233,6 +1232,11 @@ node* doIdentThing(char* id) { //identifier declared
 	n->u.ident.line = line;
 	n->u.ident.id = id;
 	n->u.ident.pos = -1;
+	if(currentTable->scope == GLOBAL_SCOPE) {
+		n->u.ident.stor = SG_STATIC;
+	} else {
+		n->u.ident.stor = SG_AUTO;
+	}
 	//TODO: dont install if unnamed struct
 	if(!containsSymbol(currentTable, id)) {
 		installSymbol(currentTable, id);
@@ -1350,6 +1354,7 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 					break;
 			}
 		} else if(n->type == CALL_NODE) {
+			traverseAST(n->u.call.function, tabs+1);
 			int argnum = n->u.call.argnum;
 			for(i=0; i<tabs; i++) printf("\t");
 			printf("%i Arguments\n", argnum);
@@ -1363,6 +1368,9 @@ void traverseAST(node* n, int tabs) { //Recursively print AST
 				for(i=0; i<tabs; i++) printf("\t");
 				printf("No function body...\n");
 			}
+		} else if(n->type == STRING_NODE) {
+			for(i=0; i<tabs; i++) printf("\t");
+			printf("TEXT: %s\n", n->u.string.value);
 		} else {
 			for(i=0; i<tabs; i++) printf("\t");
 			printf("Something else?\n");
