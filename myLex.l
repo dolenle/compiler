@@ -97,10 +97,11 @@ _Imaginary	{return _IMAGINARY;}
 ">>"		{return SHR;}
 
 	/*filename matching*/
-#[ ]{decimal}[ ]\"					{BEGIN(directmode); line = atoi(yytext+2);}
+#[ ]{decimal}[ ]\"			{BEGIN(directmode); line = atoi(yytext+2);}
 <directmode>[^<].*\.{letter}		strncpy(filename, yytext, SIZE-1);
-<directmode>\"\n?					BEGIN(INITIAL);
-#[ ]{digit}[ ]\"<.*				/*do nothing*/
+<directmode>\".*\n?			BEGIN(INITIAL);
+
+#[ ]{decimal}[ ]\"<.*				/*do nothing*/
 
 	/*char op matching*/
 \[|\]|\{|\}|\(|\)|\.|\+|\-|&|\*|~|!|\/|%|<|>|\^|\||\?|:|;|,|=	{return *yytext;}
