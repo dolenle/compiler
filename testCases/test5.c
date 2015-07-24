@@ -9,12 +9,19 @@
 //                 z(a,2,z);
 //         return;
 // }
+int x;
+int a[];
+int a2[20];
+int *m;
+int f();
 
 main() {
-	int x,y,z;
+	int y,z;
 	if(x > y && z) {
 		x+=2;
+		a2[3] = y;
 	}
+	f("hello");
 	return 0;
 }
 

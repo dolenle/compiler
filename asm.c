@@ -6,12 +6,20 @@
 #define ASM_LENGTH 128
 
 int lSize = sizeof(long);
-int nextOffset = 0;
+unsigned int nextOffset = 0;
+unsigned int globalCounter = 0;
+unsigned int stringCounter = 0;
 char asmBuffer[ASM_LENGTH];
 arg_list* fn_call_args;
 
 asm_list* asm_ptr = NULL;
 asm_list* function_start;
+
+static_list* static_vars = NULL;
+static_list* static_vars_start = NULL;
+
+asm_list* strings = NULL;
+asm_list* strings_start = NULL;
 
 //generate the address of the quad argument, allocating memory as necessary
 //for IDENT, offset value is stored in the AST union
@@ -21,14 +29,17 @@ char* format_operand(qnode* qn) {
 		case Q_IDENT: {
 			if(qn->u.ast->type == IDENT_NODE) {
 				if(qn->u.ast->u.ident.stor == SG_STATIC) {
+					if(*(qn->pos) == -1) { //add static variable to static_vars list
+						push_global(qn->u.ast);
+						*(qn->pos) = -2;
+					}
 					return qn->u.ast->u.ident.id;
 				} else if(qn->u.ast->u.ident.stor == SG_AUTO) {
 					char* s = malloc(ASM_LENGTH);
 					if(*(qn->pos) == -1) {
-						printf("\t\t# Allocating offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
+						printf("Allocating offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
 						*(qn->pos) = nextOffset;
-						node* n = qn->u.ast->next;
-						nextOffset += get_ident_offset(n);
+						nextOffset += get_ident_offset(qn->u.ast->next);
 					}
 					sprintf(s, "-%i(%%ebp)", *(qn->pos));
 					return s;
@@ -58,6 +69,26 @@ char* format_operand(qnode* qn) {
 		}
 		case Q_LABEL: { //just return basic block name
 			return qn->u.block->name;
+		}
+		case Q_STRING: {
+			//Add string to list
+			asm_list* s = malloc(sizeof(asm_list));
+			if(!s){
+				fprintf(stderr, "ASM Error: Unable to allocate memory for string list\n");
+				exit(1);
+			}
+			s->text = qn->u.ast->u.string.value;
+			stringCounter++;
+			if(!strings) { //empty list
+				strings = s;
+				strings_start = s; //save first item
+			} else { //push string
+				strings->next = s;
+				strings = s; 
+			}
+			char* temp = malloc(32);
+			sprintf(temp, "$.S%i", stringCounter);
+			return temp;
 		}
 		default: {
 			printf("ASM Error: could not resolve QNODE type\n");
@@ -364,7 +395,7 @@ void translate_quad(quad* q) {
 		case O_CALL: {
 			//push args in reverse above esp
 			int argCounter = 0;
-			while(1) {
+			while(fn_call_args) {
 				// printf("\tmovl %s, %%eax\n", format_operand(fn_call_args->arg->source1));
 				// printf("\tmovl %%eax, %d(%%esp)\n", argCounter * lSize);
 
@@ -377,6 +408,10 @@ void translate_quad(quad* q) {
 				} else {
 					break;
 				}
+			}
+			push_asm("call", format_operand(q->source1), NULL, NULL);
+			if(q->dest != NULL) { //save result
+				push_asm("movl", "%eax", format_operand(q->dest), NULL);
 			}
 			break;
 		}
@@ -470,6 +505,30 @@ void translate_function(char* name, block* b) {
 	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
 	push_text(asmBuffer);
 
+	while(static_vars_start) {
+		sprintf(asmBuffer, "\t.comm %s, %i, %i", static_vars_start->name, static_vars_start->size, static_vars_start->alignment);
+		push_text(asmBuffer);
+		if(static_vars_start->next) {
+			static_vars_start=static_vars_start->next;
+		} else {
+			break;
+		}
+	}
+
+	if(strings_start) {
+		push_text("\t.section .rodata");
+	}
+	while(strings_start) {
+		int count = 0;
+		sprintf(asmBuffer, ".S%i:\n\t\"%s\"", count++, strings_start->text);
+		push_text(asmBuffer);
+		if(strings_start->next) {
+			strings_start=strings_start->next;
+		} else {
+			break;
+		}
+	}
+
 	asmTestPrint(function_start);
 }
 
@@ -544,5 +603,27 @@ void push_arg(quad* arg) {
 		l->prev = fn_call_args;
 		fn_call_args->next = l;
 		fn_call_args = l; 
+	}
+}
+
+void push_global(node* n) {
+	static_list* s = malloc(sizeof(static_list));
+	if(!s){
+		fprintf(stderr, "ASM Error: Unable to allocate memory for static var list\n");
+		exit(1);
+	}
+	s->name = n->u.ident.id;
+	s->alignment = 4; //x86
+	if(n->next) {
+		s->size = get_ident_offset(n->next);
+	} else { //default, assume int
+		s->size = sizeof(int);
+	}
+	if(!static_vars) { //empty list
+		static_vars = s;
+		static_vars_start = s; //save first item
+	} else { //push var
+		static_vars->next = s;
+		static_vars = s; 
 	}
 }

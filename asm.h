@@ -6,17 +6,29 @@
 
 typedef struct asm_list asm_list;
 typedef struct arg_list arg_list;
+typedef struct static_list static_list;
 
+//Each assembly instruction is placed in a linked list
 struct asm_list {
 	char* text;
 	asm_list* next;
 	asm_list* prev;
 };
 
+//Function call arguments
 struct arg_list {
 	quad* arg;
 	arg_list* next;
 	arg_list* prev;
+};
+
+//Static variables for common block
+struct static_list {
+	char* name;
+	int size;
+	int alignment;
+	int local_flag;
+	static_list* next;
 };
 
 //push assembly instruction to linked list
@@ -24,6 +36,9 @@ asm_list* push_asm(char* instruction, char* addr1, char* addr2, char* addr3);
 
 //push unformatted text
 asm_list* push_text(char* text);
+
+//push global variable
+void push_global(node* n);
 
 //Generate address for quad node
 char* format_operand(qnode* qn);

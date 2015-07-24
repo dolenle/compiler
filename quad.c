@@ -353,7 +353,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 		case STRING_NODE: {
 			qnode* str = qnode_new(Q_STRING);
 			str->name = malloc(64);
-			sprintf(str->name, "%%S%i", stringCount++);
+			sprintf(str->name, ".S%i", stringCount++);
 			str->u.ast = n;
 			if(target && target->type == Q_IDENT) {
 				if(target->u.ast->next->type == POINTER_NODE) {
