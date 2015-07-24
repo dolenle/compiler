@@ -465,9 +465,9 @@ void translate_function(char* name, block* b) {
 			break;
 		}
 	}
-	sprintf(asmBuffer, "\tsubl $%i, %%esp\n", nextOffset);
+	sprintf(asmBuffer, "\tsubl $%i %%esp", nextOffset);
 	espPtr->text = strndup(asmBuffer, ASM_LENGTH-1);
-	sprintf(asmBuffer, "\t.size %s,.-%s\n", name, name);
+	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
 	push_text(asmBuffer);
 
 	asmTestPrint(function_start);

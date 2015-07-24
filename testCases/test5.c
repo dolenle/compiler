@@ -10,14 +10,14 @@
 //         return;
 // }
 
-q() {
+main() {
 	int x,y,z;
 	if(x > y && z) {
 		x+=2;
 	}
-	char s[5];
-	s = "hello";
+	return 0;
 }
+
 // void g();
 // 
 // int b() {
