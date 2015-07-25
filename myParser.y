@@ -86,8 +86,10 @@ primary_expression
 					//printf("Symbol found in outer scope\n");
 					$$ = getNode(parent, $1);
 				} else {
-					yyerror("Symbol not found");
-					$$ = NULL;
+					$$ = doIdentThing($1);
+					$$->u.ident.stor = SG_EXTERN;
+					//yyerror("Symbol not found");
+					//$$ = NULL;
 				}
 			}
 		}
@@ -131,11 +133,19 @@ postfix_expression
 	}
 	| postfix_expression '(' ')' {
 			//Function call without arguments
+			if($1->type == IDENT_NODE && !$1->next) {
+				node* x = ast_newNode(FUNCTION_NODE);
+				$1->next = x;
+			}
 			$$ = ast_newNode(CALL_NODE);
 			$$->u.call.function = $1;
 			$$->u.call.argnum = 0;
 		}
 	| postfix_expression '(' argument_expression_list ')' {
+			if($1->type == IDENT_NODE && !$1->next) {
+				node* x = ast_newNode(FUNCTION_NODE);
+				$1->next = x;
+			}
 			$$ = ast_newNode(CALL_NODE);
 			$$->u.call.function = $1;
 			$$->u.call.args = $3.topNode;

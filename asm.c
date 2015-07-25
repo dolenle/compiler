@@ -43,6 +43,8 @@ char* format_operand(qnode* qn) {
 					}
 					sprintf(s, "-%i(%%ebp)", *(qn->pos));
 					return s;
+				} else if(qn->u.ast->u.ident.stor == SG_EXTERN) {
+					return qn->u.ast->u.ident.id;
 				} else {
 					printf("ASM Error: Unimplemented storage class\n");
 				}
@@ -78,7 +80,6 @@ char* format_operand(qnode* qn) {
 				exit(1);
 			}
 			s->text = qn->u.ast->u.string.value;
-			stringCounter++;
 			if(!strings) { //empty list
 				strings = s;
 				strings_start = s; //save first item
@@ -88,6 +89,7 @@ char* format_operand(qnode* qn) {
 			}
 			char* temp = malloc(32);
 			sprintf(temp, "$.S%i", stringCounter);
+			stringCounter++;
 			return temp;
 		}
 		default: {
@@ -420,7 +422,7 @@ void translate_quad(quad* q) {
 			// printf("\tsubl $%li, %%esp\n", (q->source1->u.value+1)*lSize);
 			
 			char* temp = malloc(64);
-			sprintf(temp, "%li(%%esp)", (q->source1->u.value+1)*lSize);
+			sprintf(temp, "$%li", (q->source1->u.value+1)*lSize);
 			push_asm("subl", temp, "%esp", NULL);
 			break;
 		}
@@ -520,7 +522,7 @@ void translate_function(char* name, block* b) {
 	}
 	while(strings_start) {
 		int count = 0;
-		sprintf(asmBuffer, ".S%i:\n\t\"%s\"", count++, strings_start->text);
+		sprintf(asmBuffer, ".S%i:\n\t.string \"%s\"", count++, strings_start->text);
 		push_text(asmBuffer);
 		if(strings_start->next) {
 			strings_start=strings_start->next;

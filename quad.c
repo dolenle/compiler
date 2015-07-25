@@ -158,6 +158,9 @@ void stmt_list_parse(node* list) {
 					}
 				}
 				emit(O_CALL, NULL, gen_rvalue(n->u.call.function, NULL), NULL);
+			} else {
+				printf("QUAD ERROR: Unrecognized Node Type %i\n", n->type);
+				exit(1);
 			}
 			if(list->next) {
 				list = list->next;
@@ -178,7 +181,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 			q->name = n->u.ident.id;
 			q->u.ast = n;
 			q->pos = &(n->u.ident.pos);
-			if(n->next->type == SCALAR_NODE || n->next->type == POINTER_NODE || n->next->type == FUNCTION_NODE) {			
+			if(n->next->type == SCALAR_NODE || n->next->type == POINTER_NODE) {			
 				if(target && target->type == Q_IDENT) {
 					if(target->u.ast->next->type == SCALAR_NODE) {
 						emit(O_MOV, target, q, NULL);
@@ -189,6 +192,8 @@ qnode* gen_rvalue(node* n, qnode* target) {
 				qnode* dest = new_temp();
 				emit(O_LEA, dest, q, NULL);
 				return dest;
+			} else if(n->next->type == FUNCTION_NODE) {
+				return q;
 			} else {
 				printf("RVAL Unimplemented IDENT\n");
 			}
