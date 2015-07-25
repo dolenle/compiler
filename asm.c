@@ -7,6 +7,7 @@
 
 int lSize = sizeof(long);
 unsigned int nextOffset = 0;
+unsigned int argCounter = 0;
 unsigned int globalCounter = 0;
 unsigned int stringCounter = 0;
 char asmBuffer[ASM_LENGTH];
@@ -396,13 +397,12 @@ void translate_quad(quad* q) {
 		}
 		case O_CALL: {
 			//push args in reverse above esp
-			int argCounter = 0;
 			while(fn_call_args) {
 				// printf("\tmovl %s, %%eax\n", format_operand(fn_call_args->arg->source1));
 				// printf("\tmovl %%eax, %d(%%esp)\n", argCounter * lSize);
 
 				char* temp = malloc(64);
-				sprintf(temp, "%i(%%esp)", argCounter * lSize);
+				sprintf(temp, "%i(%%esp)", --argCounter * lSize);
 				push_asm("movl", format_operand(fn_call_args->arg->source1), "%eax", NULL);
 				push_asm("movl", "%eax", temp, NULL);
 				if(fn_call_args->prev) {
@@ -420,7 +420,7 @@ void translate_quad(quad* q) {
 		case O_ARGNUM: {
 			fn_call_args = NULL;
 			// printf("\tsubl $%li, %%esp\n", (q->source1->u.value+1)*lSize);
-			
+			argCounter = 0;
 			char* temp = malloc(64);
 			sprintf(temp, "$%li", (q->source1->u.value+1)*lSize);
 			push_asm("subl", temp, "%esp", NULL);
@@ -428,6 +428,7 @@ void translate_quad(quad* q) {
 		}
 		case O_ARGDEF: {
 			push_arg(q);
+			argCounter++;
 			break;
 	    }
 	    case O_RETURN: {
