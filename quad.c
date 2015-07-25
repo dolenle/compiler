@@ -116,6 +116,9 @@ block* function_block(node* body) {
 	currentBlock = bb_newBlock(++functionCount, blockCount, currentBlock);
 	block* tmp = currentBlock;
 	stmt_list_parse(body);
+	if(!currentBlock->bottom || currentBlock->bottom->op != O_RETURN) { //default return
+		emit(O_RETURN, NULL, NULL, NULL);
+	}
 	print_blocks(tmp);
 	return tmp;
 }
@@ -158,6 +161,8 @@ void stmt_list_parse(node* list) {
 					}
 				}
 				emit(O_CALL, NULL, gen_rvalue(n->u.call.function, NULL), NULL);
+			} else if(n->type == IDENT_NODE) {
+				//do nothing
 			} else {
 				printf("QUAD ERROR: Unrecognized Node Type %i\n", n->type);
 				exit(1);
