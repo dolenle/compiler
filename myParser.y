@@ -13,7 +13,7 @@
 #define YYDEBUG 1
 int yydebug = 0;
 #define PRINT_DECL 0 //1 to print declaration info
-#define PRINT_AST 0 //1 to print final AST for each function
+#define PRINT_AST 1 //1 to print final AST for each function
 #define PRINT_QUADS 0 //1 to print quad for each function
 
 void yyerror(const char* s);
@@ -140,7 +140,20 @@ postfix_expression
 				$1->next = x;
 			}
 			$$ = ast_newNode(CALL_NODE);
-			$$->u.call.function = $1;
+			if($1->type == IDENT_NODE) {
+				if($1->u.ident.stor != SG_EXTERN) { //REALLY KLUDGY
+					$$->u.call.function = ast_newNode(IDENT_NODE);
+					$$->u.call.function->u.ident.id = $1->u.ident.id;
+					$$->u.call.function->u.ident.pos = -1;
+					$$->u.call.function->next = ast_newNode(FUNCTION_NODE);
+					$$->u.call.function->u.ident.stor = SG_EXTERN;
+				} else {
+					$$->u.call.function = $1;
+				}
+			} else {
+				printf("Expected IDENT\n");
+			}
+			//$$->u.call.function = $1;
 			$$->u.call.argnum = 0;
 		}
 	| postfix_expression '(' argument_expression_list ')' {
