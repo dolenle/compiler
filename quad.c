@@ -390,7 +390,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 qnode* gen_lvalue(node* node, int* flag) {
 	switch(node->type) {
 		case IDENT_NODE:
-			if(node->next->type == SCALAR_NODE) {
+			if(node->next->type == SCALAR_NODE || node->next->type == POINTER_NODE) {
 				qnode* q = qnode_new(Q_IDENT);
 				q->name = node->u.ident.id;
 				q->u.ast = node;
