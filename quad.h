@@ -118,7 +118,7 @@ void gen_cond(node* expr, qnode* t, qnode* f);
 void gen_jmp(node* start);
 
 void stmt_list_parse(node* list);
-block* function_block(node* body);
+block* function_block(node* body, int print);
 
 void print_blocks(block* start);
 

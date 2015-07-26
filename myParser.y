@@ -12,7 +12,9 @@
 
 #define YYDEBUG 1
 int yydebug = 0;
-int print_decl = 0; //1 to print declaration ast
+#define PRINT_DECL 0 //1 to print declaration info
+#define PRINT_AST 0 //1 to print final AST for each function
+#define PRINT_QUADS 0 //1 to print quad for each function
 
 void yyerror(const char* s);
 
@@ -196,7 +198,11 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression {
-			$$ = $1;
+			if($1->type == IDENT_NODE && $1->u.ident.stor == SG_EXTERN) {
+				yyerror("Undefined Variable");
+			} else {
+				$$ = $1;
+			}
 		}
 	| '&' cast_expression {
 			$$ = ast_newNode(UNOP_NODE);
@@ -496,7 +502,7 @@ declaration
 	| declaration_specifiers init_declarator_list ';' {
 			if(!$1.errorFlag && !$2.errorFlag) {
 				//Chokes on "int * const i"
-				if(print_decl) printf("\nparsing AST....\n\n");
+				if(PRINT_DECL) printf("\nparsing AST....\n\n");
 				node* dc = $2.topNode; //declarator
 				initAST(&$$);
 				node* nextID = NULL;
@@ -520,7 +526,7 @@ declaration
 						} else {
 							dc->u.ident.stor = SG_AUTO;
 						}
-						if(print_decl) printf("identifier \"%s\" declared on line %i, storage class %s\n",
+						if(PRINT_DECL) printf("identifier \"%s\" declared on line %i, storage class %s\n",
 						dc->u.ident.id, dc->u.ident.line, storageText[dc->u.ident.stor]);
 						
 						$$ = appendNode($$, dc);
@@ -533,13 +539,13 @@ declaration
 						if(dc->next->type == ARRAY_NODE) {
 							dc = dc->next;
 							$$ = appendNode($$, dc);
-							if(print_decl) printf("array of length %i containing \n", dc->u.array.length);
+							if(PRINT_DECL) printf("array of length %i containing \n", dc->u.array.length);
 						} else if(dc->next->type == POINTER_NODE) {
-							if(print_decl) printf("pointer to\n");
+							if(PRINT_DECL) printf("pointer to\n");
 							dc = dc->next;
 							$$ = appendNode($$, dc);
 						} else if(dc->next->type == FUNCTION_NODE) {
-							if(print_decl) printf("function returning\n");
+							if(PRINT_DECL) printf("function returning\n");
 							dc = dc->next;
 							$$ = appendNode($$, dc);
 						} else if(dc->next->type == IDENT_NODE) {
@@ -551,18 +557,18 @@ declaration
 					}
 					do {
 						if(ds->type == SCALAR_NODE) {
-							if(print_decl) printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
+							if(PRINT_DECL) printf("scalar type %s\n", scalarText[ds->u.scalar.type]);
 							//copy the type node to the declaration list
 							node* cpy = ast_newNode(SCALAR_NODE);
 							$$ = appendNode($$, (node*) memcpy((void*) cpy,(void*) ds, sizeof(node)));
 						} else {
-							if(print_decl) printf("Expected type specifier, got %i\n", ds->type);
+							if(PRINT_DECL) printf("Expected type specifier, got %i\n", ds->type);
 						}
 						if(ds != $1.botNode)
 							ds = ds->next;
 					} while(ds != $1.botNode);
 					
-					if(print_decl) printf("\n");
+					if(PRINT_DECL) printf("\n");
 					if(dc != $2.botNode && nextID != NULL) {
 						dc = nextID; 
 					} else {
@@ -1182,15 +1188,14 @@ translation_unit
 
 external_declaration
 	: function_definition {
-			if(print_decl) {
+			if(PRINT_DECL) {
 				printf("\nFunction \"%s\" Definition\n", $1.topNode->u.ident.id);
 				traverseAST($1.topNode, 0);
-				function_block($1.botNode->u.function.body);
 			}
 			$$ = $1;
 		}
 	| declaration {
-			if(print_decl) traverseAST($1.topNode, 0);
+			if(PRINT_DECL) traverseAST($1.topNode, 0);
 			if($1.topNode->type == IDENT_NODE) {
 				node* curr = $1.topNode;
 				initAST(&$$);
@@ -1407,12 +1412,13 @@ void yyerror(const char* s) {
 }
 
 void finalPrint() {
-	traverseAST(finalTree.topNode, 0);
+	if(PRINT_AST)
+		traverseAST(finalTree.topNode, 0);
 	node* n = finalTree.topNode;
 	do {
 		node* s = n->u.list.start;
 		if(s->type == IDENT_NODE && s->next->type == FUNCTION_NODE) {
-			block* f = function_block(s->next->u.function.body);
+			block* f = function_block(s->next->u.function.body, PRINT_QUADS);
 			translate_function(s->u.ident.id, f);
 		}
 		if(n->next) {
@@ -1424,7 +1430,7 @@ void finalPrint() {
 }
 
 int main(int argc, char** argv) {
-	printf("[C--, The Shitty C Parser]\n");
+	printf("#[C--, The Shitty C Compiler]\n");
 	strcpy(filename, "Placeholder.c");
 	currentTable = enterScope(GLOBAL_SCOPE, 0, "TestFileName.c", NULL);
 	initAST(&finalTree);

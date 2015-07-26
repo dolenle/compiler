@@ -10,6 +10,7 @@ unsigned int nextOffset = 0;
 unsigned int argCounter = 0;
 unsigned int globalCounter = 0;
 unsigned int stringCounter = 0;
+unsigned int stringCounter2 = 0;
 char asmBuffer[ASM_LENGTH];
 arg_list* fn_call_args;
 
@@ -34,11 +35,12 @@ char* format_operand(qnode* qn) {
 						push_global(qn->u.ast);
 						*(qn->pos) = -2;
 					}
-					return qn->u.ast->u.ident.id;
+					globalCounter++;
+					return qn->u.ast->u.ident.id; //TODO: append unique # to each static var to prevent conflict
 				} else if(qn->u.ast->u.ident.stor == SG_AUTO) {
 					char* s = malloc(ASM_LENGTH);
 					if(*(qn->pos) == -1) {
-						printf("Allocating offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
+						//printf("Allocating offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
 						*(qn->pos) = nextOffset;
 						nextOffset += get_ident_offset(qn->u.ast->next);
 					}
@@ -58,7 +60,7 @@ char* format_operand(qnode* qn) {
 		case Q_TEMPORARY: {
 			char* s = malloc(ASM_LENGTH);
 			if(*(qn->pos) == -1) { //allocate space in stack frame
-				printf("Allocating offset %i to %%T%i\n", nextOffset, qn->u.tempID);
+				//printf("Allocating offset %i to %%T%i\n", nextOffset, qn->u.tempID);
 				*(qn->pos) = nextOffset;
 				nextOffset += lSize;
 			}
@@ -383,16 +385,21 @@ void translate_function(char* name, block* b) {
 		}
 	}
 
+	//add strings used in the function
 	if(strings_start) {
 		push_text("\t.section .rodata");
 	}
 	while(strings_start) {
-		int count = 0;
-		sprintf(asmBuffer, ".S%i:\n\t.string \"%s\"", count++, strings_start->text);
+		sprintf(asmBuffer, ".S%i:\n\t.string \"%s\"", stringCounter2++, strings_start->text);
 		push_text(asmBuffer);
 		if(strings_start->next) {
+			asm_list* temp = strings_start;
 			strings_start=strings_start->next;
+			strings_start->prev=NULL;
+			free(temp);
 		} else {
+			free(strings_start);
+			strings = strings_start = NULL;
 			break;
 		}
 	}

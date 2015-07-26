@@ -111,7 +111,7 @@ quad* emit(opcode op, qnode* dest, qnode* src1, qnode* src2) {
 	return q;
 }
 
-block* function_block(node* body) {
+block* function_block(node* body, int print) {
 	blockCount = 1;
 	currentBlock = bb_newBlock(++functionCount, blockCount, currentBlock);
 	block* tmp = currentBlock;
@@ -119,7 +119,8 @@ block* function_block(node* body) {
 	if(!currentBlock->bottom || currentBlock->bottom->op != O_RETURN) { //default return
 		emit(O_RETURN, NULL, NULL, NULL);
 	}
-	print_blocks(tmp);
+	if(print)
+		print_blocks(tmp);
 	return tmp;
 }
 
