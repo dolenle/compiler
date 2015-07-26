@@ -1,4 +1,4 @@
-scc: myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o asm.o
+c—: myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o asm.o
 	gcc -m32 -o c-- myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o asm.o
 
 tester: tester.o syms.o hash.o

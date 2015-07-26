@@ -273,8 +273,13 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					currentBlock = bn;
 					return target;
 				}
+				case ADDR_OP: {
+					if(!target) target = new_temp();
+					emit(O_LEA, target, gen_rvalue(n->u.unop.operand, NULL), NULL);
+					return target;
+				}
 				default:
-					printf("RVAL Unimplemented UNOP\n");
+					printf("RVAL Unimplemented UNOP %i\n", n->u.unop.type);
 			}
 			break;
 		}
