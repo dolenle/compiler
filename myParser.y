@@ -1073,12 +1073,22 @@ iteration_statement
 	: WHILE '(' expression ')' statement {
 			$$ = ast_newNode(WHILE_NODE);
 			$$->u.while_stmt.condition = $3;
-			$$->u.while_stmt.body = $5;
+			if($5->type == LIST_NODE) {
+				$$->u.while_stmt.body = $5; //wrap non-block stmt in list node
+			} else {
+				$$->u.while_stmt.body = ast_newNode(LIST_NODE);
+				$$->u.while_stmt.body->u.list.start = $5;
+			}
 			$$->u.while_stmt.do_stmt = 0;
 		}
 	| DO statement WHILE '(' expression ')' ';' {
 			$$ = ast_newNode(WHILE_NODE);
-			$$->u.while_stmt.body = $2;
+			if($5->type == LIST_NODE) {
+				$$->u.while_stmt.body = $2;
+			} else {
+				$$->u.while_stmt.body = ast_newNode(LIST_NODE);
+				$$->u.while_stmt.body->u.list.start = $2;
+			}
 			$$->u.while_stmt.condition = $5;
 			$$->u.while_stmt.do_stmt = 1;
 		}

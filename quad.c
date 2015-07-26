@@ -488,7 +488,7 @@ void gen_if(node* start) {
 
 //Generate quads for WHILE and DO-WHILE loop
 void gen_while(node* start) {
-	printf("processing WHILE\n");
+	//printf("processing WHILE\n");
 	if(start->type == WHILE_NODE) {
 		block *cond, *body, *next;
 		if(start->u.while_stmt.do_stmt) { //do-while loop

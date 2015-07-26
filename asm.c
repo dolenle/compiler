@@ -58,7 +58,7 @@ char* format_operand(qnode* qn) {
 		case Q_TEMPORARY: {
 			char* s = malloc(ASM_LENGTH);
 			if(*(qn->pos) == -1) { //allocate space in stack frame
-				printf("\t\t# Allocating offset %i to %%T%i\n", nextOffset, qn->u.tempID);
+				printf("Allocating offset %i to %%T%i\n", nextOffset, qn->u.tempID);
 				*(qn->pos) = nextOffset;
 				nextOffset += lSize;
 			}
@@ -130,119 +130,75 @@ int get_ident_offset(node* n) {
 void translate_quad(quad* q) {
 	switch(q->op) {
 		case O_MOV: {
-			printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			printf("\tmovl %%eax, %s\n", format_operand(q->dest));
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("movl", "%eax", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_LOAD: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\tmovl (%%eax), %%edx\n");
-			// printf("\tmovl %%edx, %s\n", format_operand(q->dest));
             push_asm("movl", format_operand(q->source1), "%eax", NULL);
             push_asm("movl", "(%eax)", "%edx", NULL);
             push_asm("movl", "%edx", format_operand(q->dest), NULL);
             break;
 		}
 		case O_LEA: { //load effective address
-			// printf("\tleal %s, %%edx\n", format_operand(q->source1));
-			// printf("\tmovl %%edx, %s\n", format_operand(q->dest));
 			push_asm("leal", format_operand(q->source1), "%edx", NULL);
 			push_asm("movl", "%edx", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_STOR: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %s, %%edx\n", format_operand(q->source1));
-			// printf("\tmovl %%edx, (%%eax)\n");
-
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("movl", "%edx", "(%eax)", NULL);
-
 			break;
 		}
 		case O_CMP: { //compare by subtraction and check flags to branch
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\tcmpl %s, %%eax\n", format_operand(q->source2));
-
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("cmpl", format_operand(q->source2), "%eax", NULL);
 			break;
 		}
 		case O_BR: { //unconditional branch
-			// printf("\tjmp %s\n", format_operand(q->source1));
-
 			push_asm("jmp", format_operand(q->source1), NULL, NULL);
 			break;
 		}
 		case O_BRGT: { //branch if greater than
-			// printf("\tjg %s\n", format_operand(q->source1));
-			// printf("\tjmp %s\n", format_operand(q->source2));
-
 			push_asm("jg", format_operand(q->source1), NULL, NULL);
 			push_asm("jmp", format_operand(q->source2), NULL, NULL);
 			break;
 		}
 		case O_BRGE: { //branch if less than
-			// printf("\tjge %s\n", format_operand(q->source1));
-			// printf("\tjmp %s\n", format_operand(q->source2));
-
 			push_asm("jge", format_operand(q->source1), NULL, NULL);
 			push_asm("jmp", format_operand(q->source2), NULL, NULL);
 			break;
 		}
 		case O_BRLT: { 
-			// printf("\tjl %s\n", format_operand(q->source1));
-			// printf("\tjmp %s\n", format_operand(q->source2));
-
 			push_asm("jl", format_operand(q->source1), NULL, NULL);
 			push_asm("jmp", format_operand(q->source2), NULL, NULL);
 			break;
 		}
 		case O_BRLE: {
-			// printf("\tjle %s\n", format_operand(q->source1));
-			// printf("\tjmp %s\n", format_operand(q->source2));
-
 			push_asm("jle", format_operand(q->source1), NULL, NULL);
 			push_asm("jmp", format_operand(q->source2), NULL, NULL);
 			break;
 		}
 		case O_BREQ: { //check ZF flag set by cmpl
-			// printf("\tje %s\n", format_operand(q->source1));
-			// printf("\tjmp %s\n", format_operand(q->source2));
-
 			push_asm("je", format_operand(q->source1), NULL, NULL);
 			push_asm("jmp", format_operand(q->source2), NULL, NULL);
 			break;
 		}
 		case O_BRNE: {
-			// printf("\tjg %s\n", format_operand(q->source1));
-			// printf("\tjmp %s\n", format_operand(q->source2));
-
-			push_asm("jg", format_operand(q->source1), NULL, NULL);
+			push_asm("jne", format_operand(q->source1), NULL, NULL);
 			push_asm("jmp", format_operand(q->source2), NULL, NULL);
 			break;
 		}
 		case O_INC: {
-			// printf("\tincl %s\n", format_operand(q->source1));
-
 			push_asm("incl", format_operand(q->source1), NULL, NULL);
 			break;
 		}
 		case O_DEC: {
-			printf("\tdecl %s\n", format_operand(q->source1));
-
 			push_asm("decl", format_operand(q->source1), NULL, NULL);
 			break;
 		}
 		case O_MUL: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %s, %%edx\n", format_operand(q->source1));
-			// printf("\timull %%edx\n");
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("imull", "%edx", NULL, NULL);
@@ -250,12 +206,6 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_DIV: {
-			// printf("\tmovl $0, %%edx\n");
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\tmovl %s, %%ecx\n", format_operand(q->source2));
-			// printf("\tidivl %%ecx\n");
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
 			push_asm("movl", "$0", "%edx", NULL);
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("movl", format_operand(q->source2), "%ecx", NULL);
@@ -264,12 +214,6 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_MOD: {
-			// printf("\tmovl $0, %%edx\n");           //most significant 4 bytes
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));       //least sig 4 bytes
-			// printf("\tmovl %s, %%ecx\n", format_operand(q->source2));       //least sig 4 bytes
-			// printf("\tidivl %%ecx\n");
-			// printf("\tmovl %%edx, %s\n", format_operand(q->dest));    //result
-
 			push_asm("movl", "$0", "%edx", NULL);
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("movl", format_operand(q->source2), "%ecx", NULL);
@@ -278,11 +222,6 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_ADD: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %s, %%edx\n", format_operand(q->source1));
-			// printf("\taddl %%eax, %%edx\n");
-			// printf("\tmovl %%edx, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("addl", "%eax", "%edx", NULL);
@@ -290,11 +229,6 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_SUB: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %s, %%edx\n", format_operand(q->source1));
-			// printf("\tsubl %%eax, %%edx\n");
-			// printf("\tmovl %%edx, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("subl", "%eax", "%edx", NULL);
@@ -302,13 +236,6 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_SHL: {
-			// printf("\tmovl %%ebx, %%edx\n");
-			// printf("\tmovl %s, %%ebx\n", format_operand(q->source1));
-			// printf("\tmovl %s, %%ecx\n", format_operand(q->source2));
-			// printf("\tsall %%cl, %%ebx\n");
-			// printf("\tmovl %%ebx, %s\n", format_operand(q->dest));
-			// printf("\tmovl %%edx, %%ebx\n");
-
 			push_asm("movl", "%ebx", "%edx", NULL);
 			push_asm("movl", format_operand(q->source1), "%ebx", NULL);
 			push_asm("movl", format_operand(q->source2), "%ecx", NULL);
@@ -318,13 +245,6 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_SHR: {
-			// printf("\tmovl %%ebx, %%edx\n");
-			// printf("\tmovl %s, %%ebx\n", format_operand(q->source1));
-			// printf("\tmovl %s, %%ecx\n", format_operand(q->source2));
-			// printf("\tsarl %%cl, %%ebx\n");
-			// printf("\tmovl %%ebx, %s\n", format_operand(q->dest));
-			// printf("\tmovl %%edx, %%ebx\n");
-
 			push_asm("movl", "%ebx", "%edx", NULL);
 			push_asm("movl", format_operand(q->source1), "%ebx", NULL);
 			push_asm("movl", format_operand(q->source2), "%ecx", NULL);
@@ -334,73 +254,32 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_AND: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\tandl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("andl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", "%eax", format_operand(q->dest), NULL);
 	    	break;
 		}
 		case O_XOR: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\txorl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("xorl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", "%eax", format_operand(q->dest), NULL);
 	    	break;
 		}
 		case O_IOR: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\torl %s, %%eax\n", format_operand(q->source2));
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("orl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", "%eax", format_operand(q->dest), NULL);
 	    	break;
 		}
 		case O_NOT: { //bitwise not
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\tnotl %%eax\n");
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
 			push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			push_asm("notl", "%eax", NULL, NULL);
-			push_asm("movl", "%eax", format_operand(q->dest), NULL);
-			break;
-		}
-		case O_LOGAND: {
-			printf("LOGAND should not be used...\n");
-			break;
-		}
-		case O_LOGOR: {
-			printf("LOGOR should not be used...\n");
-			break;
-		}
-		case O_LOGNOT: {
-			// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-			// printf("\ttestl %%eax, %%eax\n");
-			// printf("\tsete %%al\n");
-			// printf("\tmovzbl %%al, %%eax\n");
-			// printf("\tmovl %%eax, %s\n", format_operand(q->dest));
-
-			push_asm("movl", format_operand(q->source1), "%eax", NULL);
-			push_asm("testl", "%eax", "%eax", NULL);
-			push_asm("sete", "%al", NULL, NULL);
-			push_asm("movzbl", "%al", "%eax", NULL);
 			push_asm("movl", "%eax", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_CALL: {
 			//push args in reverse above esp
 			while(fn_call_args) {
-				// printf("\tmovl %s, %%eax\n", format_operand(fn_call_args->arg->source1));
-				// printf("\tmovl %%eax, %d(%%esp)\n", argCounter * lSize);
-
 				char* temp = malloc(64);
 				sprintf(temp, "%i(%%esp)", --argCounter * lSize);
 				push_asm("movl", format_operand(fn_call_args->arg->source1), "%eax", NULL);
@@ -419,7 +298,6 @@ void translate_quad(quad* q) {
 		}
 		case O_ARGNUM: {
 			fn_call_args = NULL;
-			// printf("\tsubl $%li, %%esp\n", (q->source1->u.value+1)*lSize);
 			argCounter = 0;
 			char* temp = malloc(64);
 			sprintf(temp, "$%li", (q->source1->u.value+1)*lSize);
@@ -432,17 +310,10 @@ void translate_quad(quad* q) {
 			break;
 	    }
 	    case O_RETURN: {
-			if (q->source1) {
-				// printf("\tmovl %s, %%eax\n", format_operand(q->source1));
-				
+			if (q->source1) {				
 				push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			}
-			// printf("\tmovl %%ebp, %%esp\n");
-			// printf("\tpopl %%ebp\n");
-			// printf("\tret\n");
-
-			push_asm("movl", "%ebp", "%esp", NULL);
-			push_asm("popl", "%ebp", NULL, NULL);
+			push_asm("leave", NULL, NULL, NULL); //same as movl ebp->esp and popl ebp
 			push_asm("ret", NULL, NULL, NULL);
 	    	break;
 	    }
@@ -465,14 +336,7 @@ void asmTestPrint(asm_list* i) {
 }
 
 void translate_function(char* name, block* b) {
-	nextOffset = 0; //reset variable offset
-	// printf("\t.text\n");
-	// printf("\t.globl\t%s\n", name);
-
-	// printf("%s:\n", name);
-	// printf("\tpushl %%ebp\n");
-	// printf("\tmovl %%esp, %%ebp\n");
-	// printf("\tsubl $%d, %%esp\n", qf->local_variables_size);
+	nextOffset = sizeof(void*); //reset variable offset, leaving space for ebp
 
     function_start = push_asm(".text", 0,0,0);
     push_asm(".globl", name, 0,0);
@@ -484,7 +348,6 @@ void translate_function(char* name, block* b) {
     asm_list* espPtr = push_text("#ESP PLACEHOLDER");
 	
 	while(b) {
-		//printf("%s:\n", b->name);
 		sprintf(asmBuffer, "%s:", b->name);
 		push_text(asmBuffer);
 		
@@ -503,6 +366,8 @@ void translate_function(char* name, block* b) {
 			break;
 		}
 	}
+
+	//finish the prologue
 	sprintf(asmBuffer, "\tsubl $%i, %%esp", nextOffset);
 	espPtr->text = strndup(asmBuffer, ASM_LENGTH-1);
 	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
