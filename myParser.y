@@ -13,7 +13,7 @@
 #define YYDEBUG 1
 int yydebug = 0;
 #define PRINT_DECL 0 //1 to print declaration info
-#define PRINT_AST 0 //1 to print final AST for each function
+#define PRINT_AST 1 //1 to print final AST for each function
 #define PRINT_QUADS 0 //1 to print quad for each function
 
 void yyerror(const char* s);
@@ -212,7 +212,7 @@ argument_expression_list
 unary_expression
 	: postfix_expression {
 			if($1->type == IDENT_NODE && $1->u.ident.stor == SG_EXTERN) {
-				yyerror("Undefined Variable");
+				printf("AST Error: Undefined Variable '%s'\n", $1->u.ident.id);
 			} else {
 				$$ = $1;
 			}
@@ -289,8 +289,8 @@ multiplicative_expression
 			$$->u.binop.right = $3;
 		}
 	| multiplicative_expression '%' cast_expression {
-			node* n = ast_newNode(BINOP_NODE);
-			$$->u.binop.type = MULT_OP;
+			$$ = ast_newNode(BINOP_NODE);
+			$$->u.binop.type = MOD_OP;
 			$$->u.binop.left = $1;
 			$$->u.binop.right = $3;
 		}
