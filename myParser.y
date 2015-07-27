@@ -13,7 +13,7 @@
 #define YYDEBUG 1
 int yydebug = 0;
 #define PRINT_DECL 0 //1 to print declaration info
-#define PRINT_AST 1 //1 to print final AST for each function
+#define PRINT_AST 0 //1 to print final AST for each function
 #define PRINT_QUADS 0 //1 to print quad for each function
 
 void yyerror(const char* s);
