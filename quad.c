@@ -221,6 +221,9 @@ qnode* gen_rvalue(node* n, qnode* target) {
 		case UNOP_NODE: {
 			switch(n->u.unop.type) {
 				case DEREF_OP: {
+					if(n->u.unop.operand->type == ARRAY_NODE) {
+						return gen_rvalue(n->u.unop.operand, target);
+					}
 					qnode* addr = gen_rvalue(n->u.unop.operand, NULL);
 					if(!target) target = new_temp();
 					emit(O_LOAD, target, addr, NULL);
