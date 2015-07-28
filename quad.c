@@ -162,7 +162,7 @@ void stmt_list_parse(node* list) {
 					}
 				}
 				emit(O_CALL, NULL, gen_rvalue(n->u.call.function, NULL), NULL);
-			} else if(n->type == IDENT_NODE) {
+			} else if(n->type == IDENT_NODE || n->type == DEFAULT_NODE) {
 				//do nothing
 			} else {
 				printf("QUAD ERROR: Unrecognized Node Type %i\n", n->type);

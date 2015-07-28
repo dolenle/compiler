@@ -1032,7 +1032,7 @@ declaration_or_statement
 	;
 
 expression_statement
-	: ';' {}
+	: ';' {$$ = ast_newNode(DEFAULT_NODE);}
 	| expression ';' {$$ = $1;};
 	;
 
