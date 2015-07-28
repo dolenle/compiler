@@ -161,12 +161,8 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_CMP: { //compare by subtraction and check flags to branch
-			if((q->source1->type != Q_CONSTANT) != (q->source2->type != Q_CONSTANT)) {
-				push_asm("movl", format_operand(q->source1), "%eax", NULL);
-				push_asm("cmpl", format_operand(q->source2), "%eax", NULL);
-			} else {
-				push_asm("cmpl", format_operand(q->source2), format_operand(q->source1), NULL);
-			}
+			push_asm("movl", format_operand(q->source1), "%eax", NULL);
+			push_asm("cmpl", format_operand(q->source2), "%eax", NULL);
 			break;
 		}
 		case O_BR: { //unconditional branch
