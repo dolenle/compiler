@@ -206,7 +206,6 @@ qnode* gen_rvalue(node* n, qnode* target) {
 			break;
 		}
 		case NUMBER_NODE: {
-			//printf("RVAL-CONST\n");
 			qnode* q = qnode_new(Q_CONSTANT);
 			sprintf(q->name, "%lli", n->u.number.value);
 			q->u.value = n->u.number.value;
@@ -265,8 +264,10 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					qnode* one = qnode_new(Q_CONSTANT);
 					one->name = strdup("1");
 					one->u.value = 1;
-					
+										
 					gen_cond(n->u.unop.operand, blockToQnode(bt), blockToQnode(bf));
+					currentBlock->next = bt; //reset next block in case it has changed
+					bt->prev = currentBlock;
 					currentBlock = bt;
 					emit(O_MOV, target, zero, NULL);
 					emit(O_BR, NULL, blockToQnode(bn), NULL);
@@ -280,6 +281,50 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					if(!target) target = new_temp();
 					emit(O_LEA, target, gen_rvalue(n->u.unop.operand, NULL), NULL);
 					return target;
+				}
+				case NEG_OP: {
+					if(!target) target = new_temp();
+					qnode* val = gen_rvalue(n->u.unop.operand, NULL);
+					qnode* one = qnode_new(Q_CONSTANT);
+					one->name = strdup("-1");
+					one->u.value = -1;
+					emit(O_MUL, target, one, val);
+					return target;
+				}
+				case POS_OP: {
+					return gen_rvalue(n->u.unop.operand, NULL); //not much to do...
+				}
+				case SIZEOF_OP: {
+					int size = 0;
+					if(n->u.unop.operand->type == IDENT_NODE) {
+						if(n->u.unop.operand->next->type == ARRAY_NODE) { //compute size
+							node* a = n->u.unop.operand->next;
+							size = a->u.array.length;
+							while(a->next && a->next->type == ARRAY_NODE) {//multidimensional
+								a = a->next;
+								size *= a->u.array.length;
+							}
+							size *= sizeof(int);
+						} else { //assume its an int or ptr (same size)
+							size = sizeof(int);
+						}
+					} else if(n->u.unop.operand->type == POINTER_NODE) {
+						size = sizeof(void*);
+					} else if(n->u.unop.operand->type == SCALAR_NODE) {
+						size = sizeof(int); //only supporting ints
+					} else {
+						printf("RVAL unimplemented SIZEOF (type %i)\n", n->u.unop.operand->type);
+						exit(1);
+					}
+					qnode* q = qnode_new(Q_CONSTANT);
+					sprintf(q->name, "%i", size);
+					q->u.value = size;
+					if(target && target->type == Q_IDENT) {
+						if(target->u.ast->next->type == SCALAR_NODE) {
+							emit(O_MOV, target, q, NULL);
+						}
+					}
+					return q;
 				}
 				default:
 					printf("RVAL Unimplemented UNOP %i\n", n->u.unop.type);
@@ -516,6 +561,15 @@ void gen_while(node* start) {
 		
 		currentBlock = cond;
 		gen_cond(start->u.while_stmt.condition, b, n);
+		if(currentBlock != cond) { //reset block pts if more blocks were added
+			if(start->u.while_stmt.do_stmt) { //do-while loop
+				currentBlock->next = next;
+				next->prev = currentBlock;
+			} else {
+				currentBlock->next = body; //while loop
+				body->prev = currentBlock;
+			}
+		}
 		
 		currentBlock = body;
 		stmt_list_parse(start->u.while_stmt.body);

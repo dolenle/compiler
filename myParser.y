@@ -121,7 +121,7 @@ postfix_expression
 		}
 	| postfix_expression '[' expression ']' {
 		if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
-			printf("Something is not implemented\n");
+			yyerror("SIZEOF or ADDRESS OF an array is not implemented");
 		} else {
 			//CONVERT TO *(E1+E2)
 			$$ = ast_newNode(UNOP_NODE);
@@ -151,7 +151,7 @@ postfix_expression
 					$$->u.call.function = $1;
 				}
 			} else {
-				printf("Expected IDENT\n");
+				yyerror("Expected IDENT\n");
 			}
 			//$$->u.call.function = $1;
 			$$->u.call.argnum = 0;
@@ -212,7 +212,7 @@ argument_expression_list
 unary_expression
 	: postfix_expression {
 			if($1->type == IDENT_NODE && $1->u.ident.stor == SG_EXTERN) {
-				printf("AST Error: Undefined Variable '%s'\n", $1->u.ident.id);
+				fprintf(stderr, "AST Error: Undefined Variable '%s' on line %i\n", $1->u.ident.id, line);
 			} else {
 				$$ = $1;
 			}
@@ -266,6 +266,11 @@ unary_expression
 			$$ = ast_newNode(UNOP_NODE);
 			$$->u.unop.type = SIZEOF_OP;
 			$$->u.unop.operand = $3;
+		}
+	| SIZEOF '(' type_specifier pointer ')' {
+			$$ = ast_newNode(UNOP_NODE);
+			$$->u.unop.type = SIZEOF_OP;
+			$$->u.unop.operand = $4.topNode;
 		}
 	;
 
@@ -974,36 +979,12 @@ compound_statement
 		} declaration_or_statement_list '}' {
 			currentTable = leaveScope(currentTable, 0);
 			$$ = $3;
-			
-			// node* tmp = $$.topNode;
-			// while(tmp!= $$.botNode) {
-			// 	printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-			// 	if(tmp->type == LIST_NODE) {
-			// 		node* n = tmp->u.list.start;
-			// 		traverseAST(n, 1);
-			// 	}
-			// 	tmp = tmp->next;
-			// }
-			// printf("Node Type %i (%s)\n", tmp->type, nodeText[tmp->type]);
-			// traverseAST(tmp->u.list.start, 1);
 		}
 	;
 
 declaration_or_statement_list
 	: declaration_or_statement {
 			if($1 != NULL) {
-			/*
-				node* curr = $1;
-				initAST(&$$);
-				while(curr->next) {
-					if(curr->type == IDENT_NODE) {
-						node* n = ast_newNode(LIST_NODE);
-						n->u.list.start = curr;
-						$$ = appendNode($$, n);
-					}
-					curr = curr->next;
-				}
-			*/
 				if($1->type == IDENT_NODE) {
 					node* curr = $1;
 					initAST(&$$);
@@ -1236,7 +1217,7 @@ external_declaration
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement {printf("func1\n");}
+	: declaration_specifiers declarator declaration_list compound_statement {yyerror("Unimplemented function parameters");}
 	| declaration_specifiers declarator compound_statement {
 			if($2.botNode->type == FUNCTION_NODE && $2.topNode->type == IDENT_NODE) {
 				if($1.botNode->type == SCALAR_NODE) {
@@ -1244,7 +1225,7 @@ function_definition
 					$2.botNode->u.function.body = $3.topNode;
 				}
 			} else {
-				printf("Expected function declarator!\n");
+				yyerror("Expected function declarator!\n");
 			}
 			$$ = $2;
 		}
@@ -1256,7 +1237,7 @@ function_definition
 				$1.botNode->next = t; //set return type
 				$1.botNode->u.function.body = $2.topNode;
 			} else {
-				printf("Expected function declarator!\n");
+				yyerror("Expected function declarator!\n");
 			}
 			$$ = $1;
 		}

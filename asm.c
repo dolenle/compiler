@@ -31,12 +31,15 @@ char* format_operand(qnode* qn) {
 		case Q_IDENT: {
 			if(qn->u.ast->type == IDENT_NODE) {
 				if(qn->u.ast->u.ident.stor == SG_STATIC) {
-					if(*(qn->pos) == -1) { //add static variable to static_vars list
+					if(*(qn->pos) == -1 ) { //add static variable to static_vars list
+						char* staticID = malloc(strlen(qn->u.ast->u.ident.id)+10); //rather arbitrary
+						sprintf(staticID, "%s.%i", qn->u.ast->u.ident.id, globalCounter++);
+						free(qn->u.ast->u.ident.id);
+						qn->u.ast->u.ident.id = staticID; //append unique id to all static vars
 						push_global(qn->u.ast);
-						*(qn->pos) = -2;
+						*(qn->pos) = -2; //set visited flag
 					}
-					globalCounter++;
-					return qn->u.ast->u.ident.id; //TODO: append unique # to each static var to prevent conflict
+					return qn->u.ast->u.ident.id;
 				} else if(qn->u.ast->u.ident.stor == SG_AUTO) {
 					char* s = malloc(ASM_LENGTH);
 					if(*(qn->pos) == -1) {
@@ -326,7 +329,7 @@ void translate_quad(quad* q) {
 	}
 }
 
-void asmTestPrint(asm_list* i) {
+void asmPrint(asm_list* i) {
 	while(1) {
 		printf("%s\n", i->text);
 		if(i->next) {
@@ -338,8 +341,10 @@ void asmTestPrint(asm_list* i) {
 }
 
 void translate_function(char* name, block* b) {
+	static_vars = NULL; //reset global vars list
 	nextOffset = sizeof(void*); //reset variable offset, leaving space for ebp
 
+    //Generate function prologue
     function_start = push_asm(".text", 0,0,0);
     push_asm(".globl", name, 0,0);
     sprintf(asmBuffer, "%s:", name);
@@ -369,7 +374,7 @@ void translate_function(char* name, block* b) {
 		}
 	}
 
-	//finish the prologue
+	//Now that we know the size of the function, finish the prologue
 	sprintf(asmBuffer, "\tsubl $%i, %%esp", nextOffset);
 	espPtr->text = strndup(asmBuffer, ASM_LENGTH-1);
 	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
@@ -404,7 +409,7 @@ void translate_function(char* name, block* b) {
 		}
 	}
 
-	asmTestPrint(function_start);
+	asmPrint(function_start);
 }
 
 asm_list* push_asm(char* instruction, char* addr1, char* addr2, char* addr3) {

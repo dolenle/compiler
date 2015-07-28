@@ -40,7 +40,7 @@ asm_list* push_text(char* text);
 //push global variable
 void push_global(node* n);
 
-//Generate address for quad node
+//Generate/allocate address for quad node
 char* format_operand(qnode* qn);
 
 //translate single quad to asm
@@ -51,5 +51,11 @@ void translate_function(char* name, block* start);
 
 //push ARGDEF quad to argument list
 void push_arg(quad* arg);
+
+//print assembly list starting from i
+void asmPrint(asm_list* i);
+
+//compute the size of an ident
+int get_ident_offset(node* n);
 
 #endif
