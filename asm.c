@@ -43,7 +43,7 @@ char* format_operand(qnode* qn) {
 				} else if(qn->u.ast->u.ident.stor == SG_AUTO) {
 					char* s = malloc(ASM_LENGTH);
 					if(*(qn->pos) == -1) {
-						//printf("Allocating offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
+						printf("# Allocated offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
 						*(qn->pos) = nextOffset;
 						nextOffset += get_ident_offset(qn->u.ast->next);
 					}
@@ -63,7 +63,7 @@ char* format_operand(qnode* qn) {
 		case Q_TEMPORARY: {
 			char* s = malloc(ASM_LENGTH);
 			if(*(qn->pos) == -1) { //allocate space in stack frame
-				//printf("Allocating offset %i to %%T%i\n", nextOffset, qn->u.tempID);
+				printf("# Allocated offset %i to %%T%i\n", nextOffset, qn->u.tempID);
 				*(qn->pos) = nextOffset;
 				nextOffset += lSize;
 			}
