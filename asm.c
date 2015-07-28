@@ -155,8 +155,8 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_STOR: {
-			push_asm("movl", format_operand(q->source1), "%eax", NULL);
-			push_asm("movl", format_operand(q->source2), "%edx", NULL);
+			push_asm("movl", format_operand(q->source2), "%eax", NULL);
+			push_asm("movl", format_operand(q->source1), "%edx", NULL);
 			push_asm("movl", "%edx", "(%eax)", NULL);
 			break;
 		}
