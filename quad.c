@@ -558,6 +558,8 @@ void gen_while(node* start) {
 		qnode* b = blockToQnode(body);
 		qnode* c = blockToQnode(cond);
 		qnode* n = blockToQnode(next);
+		qnode* last_break = loop_break;
+		loop_break = n;
 		
 		currentBlock = cond;
 		gen_cond(start->u.while_stmt.condition, b, n);
@@ -583,6 +585,7 @@ void gen_while(node* start) {
 		emit(O_BR, NULL, c, NULL);
 		
 		currentBlock = next;
+		loop_break = last_break;
 		
 	} else {
 		printf("QUAD ERROR: Not a while loop\n");
@@ -600,6 +603,8 @@ void gen_for(node* start) {
 		qnode* b = blockToQnode(body);
 		qnode* a = blockToQnode(after);
 		qnode* n = blockToQnode(next);
+		qnode* last_break = loop_break;
+		loop_break = n;
 
 		currentBlock = init;
 		stmt_list_parse(start->u.for_stmt.init);
@@ -624,6 +629,7 @@ void gen_for(node* start) {
 		}
 
 		currentBlock = next;
+		loop_break = last_break;
 	} else {
 		printf("QUAD ERROR: Not a for loop\n");
 	}
@@ -706,8 +712,14 @@ void gen_jmp(node* start) {
 				val = gen_rvalue(start->u.jump.target, NULL);
 			}
 			emit(O_RETURN, NULL, val, NULL); //emit return quad
+		} else if(start->u.jump.type == BREAK_JP) {
+			if(loop_break) {
+				emit(O_BR, NULL, loop_break, NULL);
+			} else {
+				printf("Unexpected BREAK\n");
+			}
 		} else {
-			printf("Non-return jumps not currently implemented...\n");
+			printf("GOTO and CONTINUE not currently implemented...\n");
 		}
 	} else {
 		printf("QUAD ERROR: Not a jump statement\n");
