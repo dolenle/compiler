@@ -135,7 +135,7 @@ int get_ident_offset(node* n) {
 void translate_quad(quad* q) {
 	switch(q->op) {
 		case O_MOV: {
-			if(q->source1->type =! Q_CONSTANT) {
+			if(q->source1->type != Q_CONSTANT) {
 				push_asm("movl", format_operand(q->source1), "%eax", NULL);
 				push_asm("movl", "%eax", format_operand(q->dest), NULL);
 			} else {
@@ -161,7 +161,7 @@ void translate_quad(quad* q) {
 			break;
 		}
 		case O_CMP: { //compare by subtraction and check flags to branch
-			if(q->source1->type =! Q_CONSTANT) {
+			if(q->source1->type != Q_CONSTANT) {
 				push_asm("movl", format_operand(q->source1), "%eax", NULL);
 				push_asm("cmpl", format_operand(q->source2), "%eax", NULL);
 			} else {
