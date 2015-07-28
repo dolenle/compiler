@@ -371,8 +371,8 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					qnode* size = qnode_new(Q_CONSTANT);
 					int nextType = n->u.binop.left->next->next->type;
 					if(nextType == SCALAR_NODE) {
-						sprintf(size->name, "%li", sizeof(long long int));
-						size->u.value = (long long) sizeof(long long int);
+						sprintf(size->name, "%li", sizeof(int));
+						size->u.value = (long long) sizeof(int);
 					} else if(nextType == POINTER_NODE || nextType == ARRAY_NODE) {
 						sprintf(size->name, "%li", sizeof(int*));
 						size->u.value = (long long) sizeof(int*);
