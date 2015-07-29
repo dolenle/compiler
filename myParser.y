@@ -12,9 +12,9 @@
 
 #define YYDEBUG 1
 int yydebug = 0;
-#define PRINT_DECL 0 //1 to print declaration info
-#define PRINT_AST 0 //1 to print final AST for each function
-#define PRINT_QUADS 0 //1 to print quad for each function
+#define PRINT_DECL 0 //1 to print declaration info and AST for each func
+#define PRINT_AST 0 //1 to print final AST
+#define PRINT_QUADS 0 //1 to print quads at EOF
 
 void yyerror(const char* s);
 
@@ -121,7 +121,7 @@ postfix_expression
 		}
 	| postfix_expression '[' expression ']' {
 		if($1->type == UNOP_NODE && ($1->u.unop.type == SIZEOF_OP || $1->u.unop.type == ADDR_OP)) {
-			yyerror("SIZEOF or ADDRESS OF an array is not implemented");
+			yyerror("SIZEOF or ADDRESS Unimplemented");
 		} else {
 			//CONVERT TO *(E1+E2)
 			$$ = ast_newNode(UNOP_NODE);

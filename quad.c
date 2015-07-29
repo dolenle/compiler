@@ -77,7 +77,7 @@ block* bb_appendQuad(block* b, quad* q) {
 		b->top = q;
 		b->bottom = q;
 	} else {
-		printf("Error (bb_append): Inconsistent Basic Block\n");
+		fprintf(stderr, "Error (bb_append): Inconsistent Basic Block\n");
 	}
 }
 
@@ -165,7 +165,7 @@ void stmt_list_parse(node* list) {
 			} else if(n->type == IDENT_NODE || n->type == DEFAULT_NODE) {
 				//do nothing
 			} else {
-				printf("QUAD ERROR: Unrecognized Node Type %i\n", n->type);
+				fprintf(stderr, "QUAD ERROR: Unrecognized Node Type %i\n", n->type);
 				exit(1);
 			}
 			if(list->next) {
@@ -174,7 +174,7 @@ void stmt_list_parse(node* list) {
 				break;
 			}
 		} else {
-			printf("QUAD ERROR: Invalid Statement List\n");
+			fprintf(stderr, "QUAD ERROR: Invalid Statement List\n");
 			break;
 		}
 	}
@@ -203,7 +203,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 			} else if(n->next->type == FUNCTION_NODE) {
 				return q;
 			} else {
-				printf("RVAL Unimplemented IDENT\n");
+				fprintf(stderr, "RVAL Unimplemented IDENT\n");
 			}
 			break;
 		}
@@ -222,8 +222,12 @@ qnode* gen_rvalue(node* n, qnode* target) {
 		case UNOP_NODE: {
 			switch(n->u.unop.type) {
 				case DEREF_OP: {
-					if(n->u.unop.operand->type == ARRAY_NODE) {
-						return gen_rvalue(n->u.unop.operand, target);
+					//because of the AST structure, this is a bit messy
+					if(n->u.unop.operand->type == BINOP_NODE && n->u.unop.operand->u.binop.type == PLUS_OP) {
+						node* l = n->u.unop.operand->u.binop.left;
+						if(l->type == IDENT_NODE && l->next && l->next->type == ARRAY_NODE) {
+							return gen_rvalue(n->u.unop.operand, target);
+						}
 					}
 					qnode* addr = gen_rvalue(n->u.unop.operand, NULL);
 					if(!target) target = new_temp();
@@ -315,7 +319,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					} else if(n->u.unop.operand->type == SCALAR_NODE) {
 						size = sizeof(int); //only supporting ints
 					} else {
-						printf("RVAL unimplemented SIZEOF (type %i)\n", n->u.unop.operand->type);
+						fprintf(stderr, "RVAL unimplemented SIZEOF (type %i)\n", n->u.unop.operand->type);
 						exit(1);
 					}
 					qnode* q = qnode_new(Q_CONSTANT);
@@ -329,7 +333,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					return q;
 				}
 				default:
-					printf("RVAL Unimplemented UNOP %i\n", n->u.unop.type);
+					fprintf(stderr, "RVAL Unimplemented UNOP %i\n", n->u.unop.type);
 			}
 			break;
 		}
@@ -366,21 +370,32 @@ qnode* gen_rvalue(node* n, qnode* target) {
 				currentBlock = bn;
 				return target;
 			} else {
+				node* bLeft = n->u.binop.left;
 				qnode* left = gen_rvalue(n->u.binop.left, NULL);
 				qnode* right = gen_rvalue(n->u.binop.right, NULL);
-				if(n->u.binop.left->type == IDENT_NODE && n->u.binop.left->next->type == ARRAY_NODE) {
-					qnode* temp = new_temp();
+				if(bLeft->type == IDENT_NODE && bLeft->next->type == ARRAY_NODE) {
 					qnode* size = qnode_new(Q_CONSTANT);
-					int nextType = n->u.binop.left->next->next->type;
+					int nextType = bLeft->next->next->type;
 					if(nextType == SCALAR_NODE) {
-						sprintf(size->name, "%li", sizeof(int));
 						size->u.value = (long long) sizeof(int);
-					} else if(nextType == POINTER_NODE || nextType == ARRAY_NODE) {
-						sprintf(size->name, "%li", sizeof(int*));
+					} else if(nextType == POINTER_NODE) {
 						size->u.value = (long long) sizeof(int*);
+					} else if(nextType == ARRAY_NODE) {
+						node* arr = bLeft->next->next;
+						size->u.value = 1;
+						while(arr) {
+							size->u.value *= (long long) sizeof(int*)*arr->u.array.length;
+							if(arr->next && arr->next->type == ARRAY_NODE) {
+								arr = arr->next;
+							} else {
+								break;
+							}
+						}
 					} else {
-						printf("QUAD ERROR, unimplemented sizeof\n");
+						fprintf(stderr, "QUAD ERROR, unimplemented sizeof\n");
 					}
+					qnode* temp = new_temp();
+					sprintf(size->name, "%li", size->u.value);
 					emit(O_MUL, temp, right, size);
 					right = temp;
 				}
@@ -412,7 +427,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 				emit(O_CALL, target, gen_rvalue(n->u.call.function, NULL), NULL);
 				return target;
 			} else {
-				printf("Error: Call Node RVALUE\n");
+				fprintf(stderr, "Error: Call Node RVALUE\n");
 			}
 			break;
 		}
@@ -431,7 +446,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 			}
 		}
 		default:
-			printf("Error: Cannot generate RVALUE for AST node type %i\n", n->type);
+			fprintf(stderr, "Error: Cannot generate RVALUE for AST node type %i\n", n->type);
 			exit(1);
 	}
 	return NULL;
@@ -448,10 +463,11 @@ qnode* gen_lvalue(node* node, int* flag) {
 				*flag = 0; //direct assignment
 				return q;
 			} else {
-				printf("LVAL Unimplemented IDENT->%i \n", node->next->type);
+				fprintf(stderr, "LVAL Unimplemented IDENT->%i \n", node->next->type);
 			}
 			break;
 		case NUMBER_NODE: {
+			fprintf(stderr, "Error: Scalar type invalid lvalue\n");
 			return NULL;
 		}
 		case UNOP_NODE: {
@@ -459,11 +475,11 @@ qnode* gen_lvalue(node* node, int* flag) {
 				*flag = 1; //indirect assignment via ptr
 				return gen_rvalue(node->u.unop.operand, NULL);
 			} else {
-				printf("LVAL Unimplemented UNOP\n");
+				fprintf(stderr,"LVAL Unimplemented UNOP\n");
 			}
 		}
 		default:
-			printf("Error: Cannot generate LVALUE for AST node type %i\n", node->type);
+			fprintf(stderr, "Error: Cannot generate LVALUE for AST node type %i\n", node->type);
 			exit(1);
 	}
 }
@@ -490,7 +506,7 @@ qnode* gen_assign(node* a) {
 			return dest;
 		}
 	} else {
-		printf("QUAD ERROR: Expected assignment node\n");
+		fprintf(stderr, "QUAD ERROR: Expected assignment node\n");
 	}
 }
 
@@ -511,7 +527,7 @@ void gen_if(node* start) {
 		bn = bb_newBlock(functionCount, ++blockCount, bf);
 		gen_cond(start->u.ifelse_stmt.condition, trueBlock, falseBlock);
 	} else {
-		printf("QUAD ERROR: Not an If/else node\n");
+		fprintf(stderr, "QUAD ERROR: Not an If/else node\n");
 		return;
 	}
 	nextBlock = blockToQnode(bn);
@@ -590,7 +606,7 @@ void gen_while(node* start) {
 		loop_break = last_break;
 		
 	} else {
-		printf("QUAD ERROR: Not a while loop\n");
+		fprintf(stderr, "QUAD ERROR: Not a while loop\n");
 	}
 }
 
@@ -633,7 +649,7 @@ void gen_for(node* start) {
 		currentBlock = next;
 		loop_break = last_break;
 	} else {
-		printf("QUAD ERROR: Not a for loop\n");
+		fprintf(stderr, "QUAD ERROR: Not a for loop\n");
 	}
 }
 
@@ -718,13 +734,13 @@ void gen_jmp(node* start) {
 			if(loop_break) {
 				emit(O_BR, NULL, loop_break, NULL);
 			} else {
-				printf("Unexpected BREAK\n");
+				fprintf(stderr,"Unexpected BREAK\n");
 			}
 		} else {
-			printf("GOTO and CONTINUE not currently implemented...\n");
+			fprintf(stderr, "GOTO and CONTINUE not currently implemented...\n");
 		}
 	} else {
-		printf("QUAD ERROR: Not a jump statement\n");
+		fprintf(stderr, "QUAD ERROR: Not a jump statement\n");
 	}
 }
 
@@ -745,7 +761,7 @@ void print_blocks(block* b) {
 							printf("<at>");
 						}
 					} else {
-						printf("IDENT quad not linked to IDENT NODE!\n");
+						fprintf(stderr, "IDENT quad not linked to IDENT NODE!\n");
 					}
 				}
 				printf(" =\t");
