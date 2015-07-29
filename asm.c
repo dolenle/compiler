@@ -379,7 +379,7 @@ void translate_function(char* name, block* b) {
 	}
 
 	//Now that we know the size of the function, finish the prologue
-	sprintf(asmBuffer, "\tsubl $%i, %%esp", lastOffset+sizeof(void*));
+	sprintf(asmBuffer, "\tsubl $%li, %%esp", lastOffset+sizeof(void*));
 	espPtr->text = strndup(asmBuffer, ASM_LENGTH-1);
 	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
 	push_text(asmBuffer);

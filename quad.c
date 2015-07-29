@@ -187,7 +187,7 @@ qnode* gen_rvalue(node* n, qnode* target) {
 			q->name = n->u.ident.id;
 			q->u.ast = n;
 			q->pos = &(n->u.ident.pos);
-			if(n->next->type == SCALAR_NODE || n->next->type == POINTER_NODE) {			
+			if(n->next->type == SCALAR_NODE || n->next->type == POINTER_NODE) {	
 				if(target && target->type == Q_IDENT) {
 					if(target->u.ast->next->type == SCALAR_NODE) {
 						emit(O_MOV, target, q, NULL);
@@ -195,9 +195,11 @@ qnode* gen_rvalue(node* n, qnode* target) {
 				}
 				return q;
 			} else if(n->next->type == ARRAY_NODE) {
-				qnode* dest = new_temp();
-				emit(O_LEA, dest, q, NULL);
-				return dest;
+				//qnode* dest = new_temp();
+				//emit(O_LEA, dest, q, NULL);
+				if(!target) target = new_temp();
+				emit(O_LEA, target, q, NULL);
+				return target;
 			} else if(n->next->type == FUNCTION_NODE) {
 				return q;
 			} else {
