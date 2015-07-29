@@ -43,9 +43,9 @@ char* format_operand(qnode* qn) {
 				} else if(qn->u.ast->u.ident.stor == SG_AUTO) {
 					char* s = malloc(ASM_LENGTH);
 					if(*(qn->pos) == -1) {
+						nextOffset += get_ident_offset(qn->u.ast->next);
 						printf("# Allocated offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
 						*(qn->pos) = nextOffset;
-						nextOffset += get_ident_offset(qn->u.ast->next);
 					}
 					sprintf(s, "-%i(%%ebp)", *(qn->pos));
 					return s;
@@ -346,7 +346,7 @@ void asmPrint(asm_list* i) {
 
 void translate_function(char* name, block* b) {
 	static_vars = NULL; //reset global vars list
-	nextOffset = sizeof(void*); //reset variable offset, leaving space for ebp
+	nextOffset = 0;//sizeof(void*); //reset variable offset, leaving space for ebp
 
     //Generate function prologue
     function_start = push_asm(".text", 0,0,0);
