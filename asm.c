@@ -32,10 +32,10 @@ char* format_operand(qnode* qn) {
 			if(qn->u.ast->type == IDENT_NODE) {
 				if(qn->u.ast->u.ident.stor == SG_STATIC) {
 					if(*(qn->pos) == -1 ) { //add static variable to static_vars list
-						char* staticID = malloc(strlen(qn->u.ast->u.ident.id)+10); //rather arbitrary
+						char* staticID = malloc(strlen(qn->u.ast->u.ident.id)+10); //arbitrary
 						sprintf(staticID, "%s.%i", qn->u.ast->u.ident.id, globalCounter++);
 						free(qn->u.ast->u.ident.id);
-						qn->u.ast->u.ident.id = staticID; //append unique id to all static vars
+						qn->u.ast->u.ident.id = staticID; //append unique id to all bss vars
 						push_global(qn->u.ast);
 						*(qn->pos) = -2; //set visited flag
 					}
@@ -210,8 +210,8 @@ void translate_quad(quad* q) {
 		case O_MUL: {
 			push_asm("movl", format_operand(q->source2), "%eax", NULL);
 			push_asm("movl", format_operand(q->source1), "%edx", NULL);
-			push_asm("imull", "%edx", "%eax", NULL);
-			push_asm("movl", "%eax", format_operand(q->dest), NULL);
+			push_asm("imull", "%eax", "%edx", NULL);
+			push_asm("movl", "%edx", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_DIV: {
@@ -322,7 +322,7 @@ void translate_quad(quad* q) {
 			if (q->source1) {				
 				push_asm("movl", format_operand(q->source1), "%eax", NULL);
 			}
-			push_asm("leave", NULL, NULL, NULL); //same as movl ebp->esp and popl ebp
+			push_asm("leave", NULL, NULL, NULL);
 			push_asm("ret", NULL, NULL, NULL);
 	    	break;
 	    }
@@ -346,7 +346,7 @@ void asmPrint(asm_list* i) {
 
 void translate_function(char* name, block* b) {
 	static_vars = NULL; //reset global vars list
-	nextOffset = 0;//sizeof(void*); //reset variable offset, leaving space for ebp
+	nextOffset = sizeof(void*); //reset variable offset, leaving space for ebp
 
     //Generate function prologue
     function_start = push_asm(".text", 0,0,0);
