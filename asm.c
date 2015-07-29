@@ -6,7 +6,7 @@
 #define ASM_LENGTH 128
 
 int lSize = sizeof(long);
-unsigned int nextOffset = 0;
+unsigned int lastOffset = 0;
 unsigned int argCounter = 0;
 unsigned int globalCounter = 0;
 unsigned int stringCounter = 0;
@@ -43,9 +43,9 @@ char* format_operand(qnode* qn) {
 				} else if(qn->u.ast->u.ident.stor == SG_AUTO) {
 					char* s = malloc(ASM_LENGTH);
 					if(*(qn->pos) == -1) {
-						nextOffset += get_ident_offset(qn->u.ast->next);
-						printf("# Allocated offset %i to IDENT %s\n", nextOffset, qn->u.ast->u.ident.id);
-						*(qn->pos) = nextOffset;
+						lastOffset += get_ident_offset(qn->u.ast->next);
+						printf("# Allocated offset %i to IDENT %s\n", lastOffset, qn->u.ast->u.ident.id);
+						*(qn->pos) = lastOffset;
 					}
 					sprintf(s, "-%i(%%ebp)", *(qn->pos));
 					return s;
@@ -63,9 +63,9 @@ char* format_operand(qnode* qn) {
 		case Q_TEMPORARY: {
 			char* s = malloc(ASM_LENGTH);
 			if(*(qn->pos) == -1) { //allocate space in stack frame
-				printf("# Allocated offset %i to %%T%i\n", nextOffset, qn->u.tempID);
-				*(qn->pos) = nextOffset;
-				nextOffset += lSize;
+				lastOffset += lSize;
+				*(qn->pos) = lastOffset;
+				printf("# Allocated offset %i to %%T%i\n", lastOffset, qn->u.tempID);
 			}
 			sprintf(s, "-%i(%%ebp)", *(qn->pos));
 			return s;
@@ -135,8 +135,12 @@ int get_ident_offset(node* n) {
 void translate_quad(quad* q) {
 	switch(q->op) {
 		case O_MOV: {
-			push_asm("movl", format_operand(q->source1), "%eax", NULL);
-			push_asm("movl", "%eax", format_operand(q->dest), NULL);
+			if(q->source1->type != Q_CONSTANT) {
+				push_asm("movl", format_operand(q->source1), "%eax", NULL);
+				push_asm("movl", "%eax", format_operand(q->dest), NULL);
+			} else {
+				push_asm("movl", format_operand(q->source1), format_operand(q->dest), NULL);
+			}
 			break;
 		}
 		case O_LOAD: {
@@ -342,7 +346,7 @@ void asmPrint(asm_list* i) {
 
 void translate_function(char* name, block* b) {
 	static_vars = NULL; //reset global vars list
-	nextOffset = sizeof(void*); //reset variable offset, leaving space for ebp
+	lastOffset = 0;//sizeof(void*); //reset variable offset, leaving space for ebp
 
     //Generate function prologue
     function_start = push_asm(".text", 0,0,0);
@@ -375,7 +379,7 @@ void translate_function(char* name, block* b) {
 	}
 
 	//Now that we know the size of the function, finish the prologue
-	sprintf(asmBuffer, "\tsubl $%i, %%esp", nextOffset);
+	sprintf(asmBuffer, "\tsubl $%i, %%esp", lastOffset+sizeof(void*));
 	espPtr->text = strndup(asmBuffer, ASM_LENGTH-1);
 	sprintf(asmBuffer, "\t.size %s,.-%s", name, name);
 	push_text(asmBuffer);
