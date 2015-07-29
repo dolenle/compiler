@@ -135,12 +135,8 @@ int get_ident_offset(node* n) {
 void translate_quad(quad* q) {
 	switch(q->op) {
 		case O_MOV: {
-			if(q->source1->type != Q_CONSTANT) {
-				push_asm("movl", format_operand(q->source1), "%eax", NULL);
-				push_asm("movl", "%eax", format_operand(q->dest), NULL);
-			} else {
-				push_asm("movl", format_operand(q->source1), format_operand(q->dest), NULL);
-			}
+			push_asm("movl", format_operand(q->source1), "%eax", NULL);
+			push_asm("movl", "%eax", format_operand(q->dest), NULL);
 			break;
 		}
 		case O_LOAD: {
