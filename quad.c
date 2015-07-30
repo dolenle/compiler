@@ -223,12 +223,12 @@ qnode* gen_rvalue(node* n, qnode* target) {
 			switch(n->u.unop.type) {
 				case DEREF_OP: {
 					//because of the AST structure, this is a bit messy
-					if(n->u.unop.operand->type == BINOP_NODE && n->u.unop.operand->u.binop.type == PLUS_OP) {
-						node* l = n->u.unop.operand->u.binop.left;
-						if(l->type == IDENT_NODE && l->next && l->next->type == ARRAY_NODE) {
-							return gen_rvalue(n->u.unop.operand, target);
-						}
-					}
+					// if(n->u.unop.operand->type == BINOP_NODE && n->u.unop.operand->u.binop.type == PLUS_OP) {
+					// 	node* l = n->u.unop.operand->u.binop.left;
+					// 	if(l->type == IDENT_NODE && l->next && l->next->type == ARRAY_NODE) {
+					// 		return gen_rvalue(n->u.unop.operand, target);
+					// 	}
+					// }
 					qnode* addr = gen_rvalue(n->u.unop.operand, NULL);
 					if(!target) target = new_temp();
 					emit(O_LOAD, target, addr, NULL);
@@ -396,6 +396,14 @@ qnode* gen_rvalue(node* n, qnode* target) {
 					}
 					qnode* temp = new_temp();
 					sprintf(size->name, "%li", size->u.value);
+					emit(O_MUL, temp, right, size);
+					
+					right = temp;
+				} else if(bLeft->type == UNOP_NODE && bLeft->u.unop.type == DEREF_OP) {
+					qnode* size = qnode_new(Q_CONSTANT);
+					size->u.value = (long long) sizeof(void*);
+					sprintf(size->name, "%li", size->u.value);
+					qnode* temp = new_temp();
 					emit(O_MUL, temp, right, size);
 					right = temp;
 				}
