@@ -101,7 +101,7 @@ arrayPtr() {
 	p2 = &a2[2];
 	printf("a2[2] = %i\n", *p2);
 	if((*p2)/(*p) == 1) {
-		printf("it should be equal...\n");
+		printf("they are equal...\n");
 	} else {
 		printf("You should not see this!!!\n");
 	}
