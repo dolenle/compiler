@@ -1,0 +1,128 @@
+cooper@cooper-VirtualBox:~/Music/compiler$ make
+bison -vd myParser.y
+gcc -m32 -c myParser.tab.c
+flex myLex.l
+gcc -m32 -c lex.yy.c
+gcc -m32 -c syms.c
+gcc -m32 -c hash.c
+gcc -m32 -c ast.c
+gcc -m32 -c quad.c
+gcc -m32 -c asm.c
+asm.c: In function ‘translate_function’:
+asm.c:382:2: warning: format ‘%li’ expects argument of type ‘long int’, but argument 3 has type ‘unsigned int’ [-Wformat=]
+  sprintf(asmBuffer, "\tsubl $%li, %%esp", lastOffset+sizeof(void*));
+  ^
+gcc -m32 -o c-- myParser.tab.o lex.yy.o syms.o hash.o ast.o quad.o asm.o
+cooper@cooper-VirtualBox:~/Music/compiler$ cd testCases/
+cooper@cooper-VirtualBox:~/Music/compiler/testCases$ gcc -E test.c | ../c-- > test.s; cc -m32 test.s
+cooper@cooper-VirtualBox:~/Music/compiler/testCases$ ./a.out
+Welcome to C--, the Shitty C Compiler. Please enter your name: Dolen
+Hello, Dolen!
+
+Testing basic operations...
+Enter an integer: 32
+(7*(32+26)/3)%69-1 = 65
+
+Boolean expressions are also evaluated to 1 or 0.
+Enter an integer: 23
+!(23 > 50) = 1
+
+The SIZEOF operator is implemented for integer, array, and pointer types.
+int k, a[10][3], *p;
+sizeof(k) = 4
+sizeof(a) = 120
+sizeof(p) = 4
+sizeof(int*) = 4
+
+Testing local static variable...
+Local static variable xx is 100
+Local static variable xx is 0
+Local static variable xx is 100
+
+Testing nested for loops...
+0	0	0	0	0	0	0	0	0	0	0	
+0	1	2	3	4	5	6	7	8	9	10	
+0	2	4	6	8	10	12	14	16	18	20	
+0	3	6	9	12	15	18	21	24	27	30	
+0	4	8	12	16	20	24	28	32	36	40	
+0	5	10	15	20	25	30	35	40	45	50	
+0	6	12	18	24	30	36	42	48	54	60	
+0	7	14	21	28	35	42	49	56	63	70	
+0	8	16	24	32	40	48	56	64	72	80	
+0	9	18	27	36	45	54	63	72	81	90	
+0	10	20	30	40	50	60	70	80	90	100	
+
+Testing pointers...
+Setting and getting number via pointer...
+Enter an integer: 49
+(*m = 49) *m is 49
+Enter an integer: 102
+z = 102
+(m = &z) *m is 102
+
+Testing arrays and pointers...
+Setting array using for loop
+loop1: a[0]=0
+loop1: a[1]=2
+loop1: a[2]=4
+loop1: a[3]=6
+loop1: a[4]=8
+loop1: a[5]=10
+loop1: a[6]=12
+loop1: a[7]=14
+loop1: a[8]=16
+loop1: a[9]=18
+Copying array using memcpy()
+loop2: a2[0]=0
+loop2: a2[1]=2
+loop2: a2[2]=4
+loop2: a2[3]=6
+loop2: a2[4]=8
+loop2: a2[5]=10
+loop2: a2[6]=12
+loop2: a2[7]=14
+loop2: a2[8]=16
+loop2: a2[9]=18
+a[2] = 4
+a2[2] = 4
+they are equal...
+
+Menu - enter one of the following:
+	1 to demo IF-ELSE statements
+	2 to demo WHILE loops
+	3 to demo FOR loops
+	0 to leave this demo.
+
+Enter an integer: 1
+Enter a number less than 20... Enter an integer: 19
+Enter another number to compare with the previous...
+Enter an integer: 3
+19 is greater than 3
+
+Enter an integer: 2
+This demo increments a global variable.
+Enter an integer: 42
+x is now 0
+Running loop...
+x is now 42
+You can try this option again and increase x further.
+
+Enter an integer: 2
+This demo increments a global variable.
+Enter an integer: 27
+x is now 42
+Running loop...
+x is now 69
+You can try this option again and increase x further.
+
+Enter an integer: 3
+Enter the number of iterations of Fibonacci numbers (FOR loop): 15
+2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 
+
+Enter an integer: 4
+Invalid option, try again: 
+Enter an integer: 0
+Breaking out of WHILE loop
+
+Goodbye, Dolen!
+cooper@cooper-VirtualBox:~/Music/compiler/testCases$ 
