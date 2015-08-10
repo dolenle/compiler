@@ -690,6 +690,9 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				bi->next = t->u.block;
 				bi->prev = currentBlock;
 				gen_cond(expr->u.binop.left, t, blockToQnode(bi)); //test left expr
+				if(currentBlock != temp) {
+					currentBlock->next = bi;
+				}
 				currentBlock = bi;
 				gen_cond(expr->u.binop.right, t, f); //test right expr
 				//currentBlock = temp;
@@ -703,6 +706,9 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				bi->next = t->u.block;
 				bi->prev = currentBlock;
 				gen_cond(expr->u.binop.left, blockToQnode(bi), f); //test left expr
+				if(currentBlock != temp) {
+					currentBlock->next = bi;
+				}
 				currentBlock = bi;
 				gen_cond(expr->u.binop.right, t, f); //test right expr
 				//currentBlock = temp;
