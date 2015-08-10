@@ -692,7 +692,7 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				gen_cond(expr->u.binop.left, t, blockToQnode(bi)); //test left expr
 				currentBlock = bi;
 				gen_cond(expr->u.binop.right, t, f); //test right expr
-				currentBlock = temp;
+				//currentBlock = temp;
 				return;
 			}
 			case LOGAND_OP: { //short circuit AND
@@ -705,7 +705,7 @@ void gen_cond(node* expr, qnode* t, qnode* f) {
 				gen_cond(expr->u.binop.left, blockToQnode(bi), f); //test left expr
 				currentBlock = bi;
 				gen_cond(expr->u.binop.right, t, f); //test right expr
-				currentBlock = temp;
+				//currentBlock = temp;
 				return;
 			}
 			default: {
